@@ -1,0 +1,167 @@
+/*
+ * @adonisjs/content
+ *
+ * (c) AdonisJS
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+import { type Vite } from '@adonisjs/vite'
+import { type Infer, type SchemaTypes } from '@vinejs/vine/types'
+import { type CollectionOptions, type ViewFn, type ViewsToQueryMethods } from './types.js'
+
+/**
+ * Manages a collection of data with schema validation and custom view functions.
+ *
+ * The Collection class provides a way to load, validate, and query structured data
+ * using VineJS schemas. It supports caching and custom view functions for data
+ * transformations and queries.
+ *
+ * @template Schema - The VineJS schema type for validating collection data
+ * @template Views - Record of view functions for querying the collection
+ *
+ * @example
+ * ```ts
+ * const posts = new Collection({
+ *   schema: postsSchema,
+ *   loader: fileLoader,
+ *   cache: true,
+ *   views: {
+ *     published: (posts) => posts.filter(p => p.published),
+ *     findBySlug: (posts, slug) => posts.find(p => p.slug === slug)
+ *   }
+ * })
+ *
+ * const query = await posts.load()
+ * const allPosts = query.all()
+ * const publishedPosts = query.published()
+ * const post = query.findBySlug('hello-world')
+ * ```
+ */
+export class Collection<
+  Schema extends SchemaTypes,
+  Views extends Record<string, ViewFn<Schema, any, any>>,
+> {
+  static #vite?: Vite
+  /** Collection configuration options */
+  #options: CollectionOptions<Schema, Views>
+  /** Cached validated data */
+  #data?: Infer<Schema>
+
+  /**
+   * Creates a new Collection instance.
+   *
+   * @param options - Configuration options including schema, loader, caching, and views
+   *
+   * @example
+   * ```ts
+   * const posts = new Collection({
+   *   schema: postsSchema,
+   *   loader: fileLoader,
+   *   cache: true,
+   *   views: { published: (posts) => posts.filter(p => p.published) }
+   * })
+   * ```
+   */
+  constructor(options: CollectionOptions<Schema, Views>) {
+    this.#options = options
+  }
+
+  /**
+   * Factory method to create a new Collection instance.
+   * This is an alternative to using the constructor directly.
+   *
+   * @param options - Configuration options including schema, loader, caching, and views
+   *
+   * @example
+   * ```ts
+   * const posts = Collection.create({
+   *   schema: postsSchema,
+   *   loader: fileLoader,
+   *   cache: true,
+   *   views: { published: (posts) => posts.filter(p => p.published) }
+   * })
+   * ```
+   */
+  static create<Schema extends SchemaTypes, Views extends Record<string, ViewFn<Schema, any, any>>>(
+    options: CollectionOptions<Schema, Views>
+  ) {
+    return new Collection<Schema, Views>(options)
+  }
+
+  /**
+   * Configures the Vite service instance for resolving asset paths.
+   * This should be called once during application initialization.
+   *
+   * @param vite - The Vite service instance from @adonisjs/vite
+   *
+   * @example
+   * ```ts
+   * Collection.useVite(vite)
+   * ```
+   */
+  static useVite(vite: Vite) {
+    this.#vite = vite
+  }
+
+  /**
+   * Loads and validates data using the configured loader and schema.
+   * Returns cached data if caching is enabled and data was previously loaded.
+   *
+   * @example
+   * ```ts
+   * const data = await posts.hydrate()
+   * ```
+   */
+  async hydrate() {
+    if (this.#data && this.#options.cache) {
+      return this.#data
+    }
+
+    this.#data = await this.#options.loader.load(this.#options.schema, {
+      vite: Collection.#vite,
+      ...this.#options.validatorMetaData,
+    })
+    return this.#data
+  }
+
+  /**
+   * Loads the collection and returns a query interface with all() method
+   * and any configured view methods.
+   *
+   * The returned object includes:
+   * - all(): Returns the complete validated dataset
+   * - Custom view methods as configured in collection options
+   *
+   * @example
+   * ```ts
+   * const query = await posts.load()
+   *
+   * // Get all data
+   * const allPosts = query.all()
+   *
+   * // Use custom view methods
+   * const publishedPosts = query.published()
+   * const post = query.findBySlug('hello-world')
+   * ```
+   */
+  async load(): Promise<
+    {
+      all(): Infer<Schema>
+    } & ViewsToQueryMethods<Views>
+  > {
+    const data = await this.hydrate()
+    const views = this.#options.views ?? ({} as Views)
+
+    return {
+      all() {
+        return data
+      },
+      ...Object.keys(views).reduce<ViewsToQueryMethods<Views>>((result, view) => {
+        ;(result as any)[view] = (...args: any[]) => views[view](data, ...args)
+        return result
+      }, {} as ViewsToQueryMethods<Views>),
+    }
+  }
+}
