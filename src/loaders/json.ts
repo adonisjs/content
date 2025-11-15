@@ -11,13 +11,13 @@ import vine from '@vinejs/vine'
 import { dirname } from 'node:path'
 import { readFile } from 'node:fs/promises'
 import { type SchemaTypes } from '@vinejs/vine/types'
+
+import debug from '../debug.ts'
 import type { LoaderContract } from '../types.ts'
 
 /**
  * A loader that reads and validates JSON data from a file.
  * Implements the LoaderContract to provide JSON file loading with schema validation.
- *
- * @template Schema - The VineJS schema type for validating the JSON data
  *
  * @example
  * ```ts
@@ -52,6 +52,7 @@ export class JsonLoader<Schema extends SchemaTypes> implements LoaderContract<Sc
    * The directory of the source file is provided as metadata during validation.
    *
    * @param schema - VineJS schema to validate the loaded JSON data against
+   * @param metadata - Optional metadata to pass to the validator
    *
    * @example
    * ```ts
@@ -61,6 +62,7 @@ export class JsonLoader<Schema extends SchemaTypes> implements LoaderContract<Sc
   async load(schema: Schema, metadata?: any) {
     const menuFileRoot = dirname(this.#source)
     const menu = JSON.parse(await readFile(this.#source, 'utf-8'))
+    debug('loading file "%s"', this.#source)
     return vine.validate({ schema, data: menu, meta: { menuFileRoot, ...metadata } })
   }
 }

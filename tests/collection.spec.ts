@@ -81,4 +81,90 @@ test.group('Collection | types', () => {
     expectTypeOf(query.findByPermalink('hello')).toEqualTypeOf<{ permalink: string } | undefined>()
     expectTypeOf(query.list()).toEqualTypeOf<{ permalink: string }[]>()
   })
+
+  test('cache data after first read', async ({ assert }) => {
+    const docsSchema = vine.array(
+      vine.object({
+        category: vine.string(),
+        children: vine.array(
+          vine.object({
+            permalink: vine.string(),
+          })
+        ),
+      })
+    )
+    type DocsSchema = Infer<typeof docsSchema>
+
+    const views = {
+      list(data: DocsSchema) {
+        return data.flatMap((node) => node.children)
+      },
+      findByPermalink(data: DocsSchema, permalink: string) {
+        const flatList = this.list(data)
+        return flatList.find((node) => node.permalink === permalink)
+      },
+    }
+
+    const data: any[] = []
+    const collection = new Collection({
+      cache: true,
+      schema: docsSchema,
+      loader: {
+        load(schema) {
+          return vine.validate({ schema, data })
+        },
+      },
+      views,
+    })
+
+    const query = await collection.load()
+    assert.deepEqual(query.list(), [])
+
+    data.push({ category: 'foo', children: [{ permalink: '/foo' }] })
+    const query1 = await collection.load()
+    assert.deepEqual(query1.list(), [])
+  })
+
+  test('do not cache data after first read', async ({ assert }) => {
+    const docsSchema = vine.array(
+      vine.object({
+        category: vine.string(),
+        children: vine.array(
+          vine.object({
+            permalink: vine.string(),
+          })
+        ),
+      })
+    )
+    type DocsSchema = Infer<typeof docsSchema>
+
+    const views = {
+      list(data: DocsSchema) {
+        return data.flatMap((node) => node.children)
+      },
+      findByPermalink(data: DocsSchema, permalink: string) {
+        const flatList = this.list(data)
+        return flatList.find((node) => node.permalink === permalink)
+      },
+    }
+
+    const data: any[] = []
+    const collection = new Collection({
+      cache: false,
+      schema: docsSchema,
+      loader: {
+        load(schema) {
+          return vine.validate({ schema, data })
+        },
+      },
+      views,
+    })
+
+    const query = await collection.load()
+    assert.deepEqual(query.list(), [])
+
+    data.push({ category: 'foo', children: [{ permalink: '/foo' }] })
+    const query1 = await collection.load()
+    assert.deepEqual(query1.list(), [{ permalink: '/foo' }])
+  })
 })

@@ -34,10 +34,6 @@ export interface LoaderContract<Schema extends SchemaTypes> {
 /**
  * A function type that transforms or queries collection data.
  *
- * @template Schema - The VineJS schema type
- * @template Args - Additional arguments the view function accepts
- * @template Result - The return type of the view function
- *
  * @example
  * ```ts
  * const filterByStatus: ViewFn<typeof schema, [string], Item[]> = (data, status) => {
@@ -53,8 +49,6 @@ export type ViewFn<Schema extends SchemaTypes, Args extends any[], Result> = (
 /**
  * Transforms a record of view functions into query method signatures.
  * Extracts the arguments and return type from each ViewFn to create method signatures.
- *
- * @template Views - Record of view functions
  *
  * @example
  * ```ts
@@ -79,9 +73,6 @@ export type ViewsToQueryMethods<Views> = {
 
 /**
  * Configuration options for creating a Collection instance.
- *
- * @template Schema - The VineJS schema type for validating collection data
- * @template Views - Record of view functions for querying/transforming the collection
  *
  * @example
  * ```ts

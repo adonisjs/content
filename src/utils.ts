@@ -355,8 +355,6 @@ export async function fetchContributorsForOrg({
  * Items from the existing array are preserved, and only new unique items
  * from the fresh array are added.
  *
- * @template T - The type of array elements
- * @template K - The key type used for deduplication
  * @param existing - The existing array to merge into
  * @param fresh - The new array containing potentially duplicate items
  * @param key - The property key to use for identifying duplicates

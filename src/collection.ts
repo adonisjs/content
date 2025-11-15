@@ -9,6 +9,8 @@
 
 import { type Vite } from '@adonisjs/vite'
 import { type Infer, type SchemaTypes } from '@vinejs/vine/types'
+
+import debug from './debug.ts'
 import { type CollectionOptions, type ViewFn, type ViewsToQueryMethods } from './types.js'
 
 /**
@@ -17,9 +19,6 @@ import { type CollectionOptions, type ViewFn, type ViewsToQueryMethods } from '.
  * The Collection class provides a way to load, validate, and query structured data
  * using VineJS schemas. It supports caching and custom view functions for data
  * transformations and queries.
- *
- * @template Schema - The VineJS schema type for validating collection data
- * @template Views - Record of view functions for querying the collection
  *
  * @example
  * ```ts
@@ -48,6 +47,7 @@ export class Collection<
   #options: CollectionOptions<Schema, Views>
   /** Cached validated data */
   #data?: Infer<Schema>
+  #views?: ViewsToQueryMethods<Views>
 
   /**
    * Creates a new Collection instance.
@@ -115,15 +115,30 @@ export class Collection<
    * ```
    */
   async hydrate() {
-    if (this.#data && this.#options.cache) {
-      return this.#data
+    if (this.#data && this.#views && this.#options.cache) {
+      debug('re-using data and views from cache')
+      return {
+        data: this.#data,
+        views: this.#views,
+      }
     }
 
+    debug('computing data')
     this.#data = await this.#options.loader.load(this.#options.schema, {
       vite: Collection.#vite,
       ...this.#options.validatorMetaData,
     })
-    return this.#data
+
+    const views = this.#options.views ?? ({} as Views)
+    this.#views = Object.keys(views).reduce<ViewsToQueryMethods<Views>>((result, view) => {
+      ;(result as any)[view] = (...args: any[]) => views[view](this.#data, ...args)
+      return result
+    }, {} as ViewsToQueryMethods<Views>)
+
+    return {
+      data: this.#data,
+      views: this.#views,
+    }
   }
 
   /**
@@ -151,17 +166,13 @@ export class Collection<
       all(): Infer<Schema>
     } & ViewsToQueryMethods<Views>
   > {
-    const data = await this.hydrate()
-    const views = this.#options.views ?? ({} as Views)
+    const { data, views } = await this.hydrate()
 
     return {
       all() {
         return data
       },
-      ...Object.keys(views).reduce<ViewsToQueryMethods<Views>>((result, view) => {
-        ;(result as any)[view] = (...args: any[]) => views[view](data, ...args)
-        return result
-      }, {} as ViewsToQueryMethods<Views>),
+      ...views,
     }
   }
 }

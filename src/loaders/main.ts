@@ -15,6 +15,7 @@ import {
 import { GithubSponsorsLoader } from './gh_sponsors.ts'
 import { GithubReleasesLoader } from './gh_releases.ts'
 import { GithubContributorsLoader } from './gh_contributors.ts'
+import { JsonLoader } from './json.ts'
 
 /**
  * Factory functions for creating content loaders.
@@ -95,5 +96,19 @@ export const loaders = {
    */
   ghReleases(options: GithubReleasesOptions) {
     return new GithubReleasesLoader(options)
+  },
+
+  /**
+   * Creates a JSON file loader instance.
+   *
+   * @param source - Path to the JSON file to load
+   *
+   * @example
+   * ```ts
+   * const loader = loaders.jsonLoader('./data/menu.json')
+   * ```
+   */
+  jsonLoader(source: string) {
+    return new JsonLoader(source)
   },
 }

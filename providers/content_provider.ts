@@ -16,14 +16,52 @@ import { Collection } from '../src/collection.ts'
 
 declare module '@vinejs/vine' {
   interface VineString {
+    /**
+     * Converts a relative path to a Vite asset path.
+     * This method transforms the path using Vite's asset resolution system.
+     */
     toVitePath(): this
+
+    /**
+     * Converts a relative path to an absolute file system path.
+     * The path is resolved relative to the menu file root directory.
+     */
     toAbsolutePath(): this
   }
 }
 
+/**
+ * Vine validation rule that converts a relative path to a Vite asset path.
+ *
+ * @param value - The value being validated
+ * @param _ - Vine options (unused)
+ * @param field - The field context containing metadata and mutation methods
+ *
+ * @example
+ * ```ts
+ * const schema = vine.object({
+ *   icon: vine.string().toVitePath()
+ * })
+ * ```
+ */
 const toVitePath = vine.createRule(function vitePath(value, _, field) {
   field.mutate(field.meta.vite.assetPath(value), field)
 })
+
+/**
+ * Vine validation rule that converts a relative path to an absolute file system path.
+ *
+ * @param value - The value being validated
+ * @param _ - Vine options (unused)
+ * @param field - The field context containing metadata and mutation methods
+ *
+ * @example
+ * ```ts
+ * const schema = vine.object({
+ *   filePath: vine.string().toAbsolutePath()
+ * })
+ * ```
+ */
 const toAbsolutePath = vine.createRule(function absolutePath(value, _, field) {
   field.mutate(resolve(field.meta.menuFileRoot, value as string), field)
 })
@@ -35,9 +73,35 @@ VineString.macro('toAbsolutePath', function (this: VineString) {
   return this.use(toAbsolutePath())
 })
 
+/**
+ * Service provider for the AdonisJS content package.
+ *
+ * This provider sets up the content collection system and integrates
+ * with Vite for asset handling if Vite is available in the application.
+ *
+ * @example
+ * ```ts
+ * export default {
+ *   providers: [
+ *     () => import('@adonisjs/content/content_provider')
+ *   ]
+ * }
+ * ```
+ */
 export default class ContentProvider {
+  /**
+   * Creates a new instance of the content provider.
+   *
+   * @param app - The AdonisJS application service instance
+   */
   constructor(protected app: ApplicationService) {}
 
+  /**
+   * Boots the content provider during the application boot phase.
+   *
+   * If Vite is registered in the container, this method configures
+   * the Collection class to use Vite's asset resolution system.
+   */
   async boot() {
     if (this.app.container.hasBinding('vite')) {
       const vite = await this.app.container.make('vite')

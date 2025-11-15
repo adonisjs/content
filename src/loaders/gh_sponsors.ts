@@ -13,14 +13,13 @@ import { dirname } from 'node:path'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { type Infer, type SchemaTypes } from '@vinejs/vine/types'
 
+import debug from '../debug.ts'
 import { fetchAllSponsors } from '../utils.ts'
 import type { GithubSponsor, GithubSponsorsOptions, LoaderContract } from '../types.ts'
 
 /**
  * A loader that fetches GitHub sponsors for a user or organization.
  * Supports caching and automatic refresh based on a schedule.
- *
- * @template Schema - The VineJS schema type for validating the sponsors data
  *
  * @example
  * ```ts
@@ -74,6 +73,7 @@ export class GithubSponsorsLoader<Schema extends SchemaTypes> implements LoaderC
     sponsors: GithubSponsor[]
   } | null> {
     try {
+      debug('loading existing sponsors file "%s"', this.#options.outputPath)
       return JSON.parse(await readFile(this.#options.outputPath, 'utf-8'))
     } catch (error) {
       if (error.code !== 'ENOENT') {
@@ -91,6 +91,7 @@ export class GithubSponsorsLoader<Schema extends SchemaTypes> implements LoaderC
    * @internal
    */
   async #cacheSponsors(sponsors: GithubSponsor[]) {
+    debug('caching sponsors "%s"', this.#options.outputPath)
     const fileContents = { lastFetched: new Date().toISOString(), sponsors }
     await mkdir(dirname(this.#options.outputPath), { recursive: true })
     await writeFile(this.#options.outputPath, JSON.stringify(fileContents))
@@ -120,6 +121,7 @@ export class GithubSponsorsLoader<Schema extends SchemaTypes> implements LoaderC
    * from GitHub API and updates the cache.
    *
    * @param schema - VineJS schema to validate the sponsors data against
+   * @param metadata - Optional metadata to pass to the validator
    *
    * @example
    * ```ts
@@ -129,6 +131,7 @@ export class GithubSponsorsLoader<Schema extends SchemaTypes> implements LoaderC
   async load(schema: Schema, metadata?: any): Promise<Infer<Schema>> {
     let existingSponsors = await this.#loadExistingSponsors()
     if (!existingSponsors || this.#isExpired(new Date(existingSponsors.lastFetched))) {
+      debug('fetching sponsors from github "%s"', this.#options.login)
       const sponsors = await fetchAllSponsors(this.#options)
       existingSponsors = await this.#cacheSponsors(sponsors)
     }

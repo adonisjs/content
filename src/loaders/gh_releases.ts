@@ -13,6 +13,7 @@ import { dirname } from 'node:path'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { type Infer, type SchemaTypes } from '@vinejs/vine/types'
 
+import debug from '../debug.ts'
 import { mergeArrays, fetchReleases } from '../utils.ts'
 import type { GithubReleasesOptions, GithubReleaseWithRepo, LoaderContract } from '../types.ts'
 
@@ -20,11 +21,9 @@ import type { GithubReleasesOptions, GithubReleaseWithRepo, LoaderContract } fro
  * A loader that fetches GitHub releases from an organization's repositories.
  * Supports caching, automatic refresh based on a schedule, and merging with existing data.
  *
- * @template Schema - The VineJS schema type for validating the releases data
- *
  * @example
  * ```ts
- * const loader = new GithubReleaseLoader({
+ * const loader = new GithubReleasesLoader({
  *   org: 'adonisjs',
  *   ghToken: process.env.GITHUB_TOKEN,
  *   outputPath: './cache/releases.json',
@@ -43,15 +42,10 @@ export class GithubReleasesLoader<Schema extends SchemaTypes> implements LoaderC
    * Creates a new GitHub release loader instance.
    *
    * @param options - Configuration options for loading GitHub releases
-   * @param options.org - GitHub organization name
-   * @param options.ghToken - GitHub personal access token for authentication
-   * @param options.outputPath - Path where cached releases will be stored
-   * @param options.refresh - Refresh schedule: 'daily', 'weekly', or 'monthly'
-   * @param options.filters - Optional filters for release names
    *
    * @example
    * ```ts
-   * const loader = new GithubReleaseLoader({
+   * const loader = new GithubReleasesLoader({
    *   org: 'adonisjs',
    *   ghToken: process.env.GITHUB_TOKEN,
    *   outputPath: './cache/releases.json',
@@ -75,6 +69,7 @@ export class GithubReleasesLoader<Schema extends SchemaTypes> implements LoaderC
     releases: GithubReleaseWithRepo[]
   } | null> {
     try {
+      debug('loading existing releases file "%s"', this.#options.outputPath)
       return JSON.parse(await readFile(this.#options.outputPath, 'utf-8'))
     } catch (error) {
       if (error.code !== 'ENOENT') {
@@ -92,6 +87,7 @@ export class GithubReleasesLoader<Schema extends SchemaTypes> implements LoaderC
    * @internal
    */
   async #cacheReleases(releases: GithubReleaseWithRepo[]) {
+    debug('caching releasing "%s"', this.#options.outputPath)
     const fileContents = { lastFetched: new Date().toISOString(), releases }
     await mkdir(dirname(this.#options.outputPath), { recursive: true })
     await writeFile(this.#options.outputPath, JSON.stringify(fileContents))
@@ -121,6 +117,7 @@ export class GithubReleasesLoader<Schema extends SchemaTypes> implements LoaderC
    * from GitHub API and merges with existing releases.
    *
    * @param schema - VineJS schema to validate the releases data against
+   * @param metadata - Optional metadata to pass to the validator
    *
    * @example
    * ```ts
@@ -130,6 +127,7 @@ export class GithubReleasesLoader<Schema extends SchemaTypes> implements LoaderC
   async load(schema: Schema, metadata?: any): Promise<Infer<Schema>> {
     let existingReleases = await this.#loadExistingReleases()
     if (!existingReleases || this.#isExpired(new Date(existingReleases.lastFetched))) {
+      debug('fetching releases from github "%s"', this.#options.org)
       const releases = await fetchReleases(this.#options)
       const mergedReleases = existingReleases
         ? mergeArrays(existingReleases.releases, releases, 'url')

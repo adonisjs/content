@@ -13,14 +13,13 @@ import { dirname } from 'node:path'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { type Infer, type SchemaTypes } from '@vinejs/vine/types'
 
+import debug from '../debug.ts'
 import { fetchContributorsForOrg } from '../utils.ts'
 import type { GithubContributorNode, GithubContributorsOptions, LoaderContract } from '../types.ts'
 
 /**
  * A loader that fetches GitHub contributors from all repositories in an organization.
  * Supports caching and automatic refresh based on a schedule.
- *
- * @template Schema - The VineJS schema type for validating the contributors data
  *
  * @example
  * ```ts
@@ -42,10 +41,6 @@ export class GithubContributorsLoader<Schema extends SchemaTypes>
    * Creates a new GitHub contributors loader instance.
    *
    * @param options - Configuration options for loading GitHub contributors
-   * @param options.org - GitHub organization name
-   * @param options.ghToken - GitHub personal access token for authentication
-   * @param options.outputPath - Path where cached contributors will be stored
-   * @param options.refresh - Refresh schedule: 'daily', 'weekly', or 'monthly'
    *
    * @example
    * ```ts
@@ -73,6 +68,7 @@ export class GithubContributorsLoader<Schema extends SchemaTypes>
     contributors: GithubContributorNode[]
   } | null> {
     try {
+      debug('loading existing contributors file "%s"', this.#options.outputPath)
       return JSON.parse(await readFile(this.#options.outputPath, 'utf-8'))
     } catch (error) {
       if (error.code !== 'ENOENT') {
@@ -90,6 +86,7 @@ export class GithubContributorsLoader<Schema extends SchemaTypes>
    * @internal
    */
   async #cacheContributors(contributors: GithubContributorNode[]) {
+    debug('caching contributors "%s"', this.#options.outputPath)
     const fileContents = { lastFetched: new Date().toISOString(), contributors }
     await mkdir(dirname(this.#options.outputPath), { recursive: true })
     await writeFile(this.#options.outputPath, JSON.stringify(fileContents))
@@ -119,6 +116,7 @@ export class GithubContributorsLoader<Schema extends SchemaTypes>
    * from GitHub API and updates the cache.
    *
    * @param schema - VineJS schema to validate the contributors data against
+   * @param metadata - Optional metadata to pass to the validator
    *
    * @example
    * ```ts
@@ -128,6 +126,7 @@ export class GithubContributorsLoader<Schema extends SchemaTypes>
   async load(schema: Schema, metadata?: any): Promise<Infer<Schema>> {
     let existingContributors = await this.#loadExistingContributors()
     if (!existingContributors || this.#isExpired(new Date(existingContributors.lastFetched))) {
+      debug('fetching contributors from github "%s"', this.#options.org)
       const contributors = await fetchContributorsForOrg(this.#options)
       existingContributors = await this.#cacheContributors(contributors)
     }
