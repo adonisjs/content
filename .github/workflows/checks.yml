@@ -6,7 +6,7 @@ on:
 
 jobs:
   test:
-    uses: ./test.yml
+    uses: ./.github/workflows/test.yml
 
   lint:
     uses: adonisjs/.github/.github/workflows/lint.yml@next
