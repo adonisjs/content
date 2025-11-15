@@ -8,7 +8,7 @@ jobs:
   test:
     name: Test
     uses: adonisjs/.github/.github/workflows/test.yml@next
-    env:
+    secrets:
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
   lint:
