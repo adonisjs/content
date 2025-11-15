@@ -6,10 +6,7 @@ on:
 
 jobs:
   test:
-    name: Test
     uses: adonisjs/.github/.github/workflows/test.yml@next
-    secrets:
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
   lint:
     uses: adonisjs/.github/.github/workflows/lint.yml@next
