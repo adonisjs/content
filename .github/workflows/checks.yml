@@ -5,8 +5,52 @@ on:
   - workflow_call
 
 jobs:
-  test:
-    uses: ./.github/workflows/test.yml
+  test_linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ['latest']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+  test_windows:
+    if: ${{ !inputs.disable-windows }}
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        node-version: ['latest']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
   lint:
     uses: adonisjs/.github/.github/workflows/lint.yml@next
