@@ -13,7 +13,7 @@
   ],
   "main": "build/index.js",
   "exports": {
-    "./loaders": "./build/loaders/main.js",
+    "./loaders": "./build/src/loaders/main.js",
     "./types": "./build/types.js",
     "./content_provider": "./build/providers/content_provider.js",
     ".": "./build/index.js"
