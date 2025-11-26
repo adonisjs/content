@@ -124,7 +124,7 @@ export class GithubReleasesLoader<Schema extends SchemaTypes> implements LoaderC
    * const releases = await loader.load(releasesSchema)
    * ```
    */
-  async load(schema: Schema, metadata?: any): Promise<Infer<Schema>> {
+  async load(schema: Schema, metadata?: any) {
     let existingReleases = await this.#loadExistingReleases()
     if (!existingReleases || this.#isExpired(new Date(existingReleases.lastFetched))) {
       debug('fetching releases from github "%s"', this.#options.org)

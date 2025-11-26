@@ -40,11 +40,6 @@ export class GithubSponsorsLoader<Schema extends SchemaTypes> implements LoaderC
    * Creates a new GitHub sponsors loader instance.
    *
    * @param options - Configuration options for loading GitHub sponsors
-   * @param options.login - GitHub username or organization name
-   * @param options.isOrg - Whether the login is an organization (true) or user (false)
-   * @param options.ghToken - GitHub personal access token for authentication
-   * @param options.outputPath - Path where cached sponsors will be stored
-   * @param options.refresh - Refresh schedule: 'daily', 'weekly', or 'monthly'
    *
    * @example
    * ```ts
@@ -128,7 +123,7 @@ export class GithubSponsorsLoader<Schema extends SchemaTypes> implements LoaderC
    * const sponsors = await loader.load(sponsorsSchema)
    * ```
    */
-  async load(schema: Schema, metadata?: any): Promise<Infer<Schema>> {
+  async load(schema: Schema, metadata?: any) {
     let existingSponsors = await this.#loadExistingSponsors()
     if (!existingSponsors || this.#isExpired(new Date(existingSponsors.lastFetched))) {
       debug('fetching sponsors from github "%s"', this.#options.login)

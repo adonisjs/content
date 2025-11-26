@@ -91,6 +91,43 @@ export class Collection<
   }
 
   /**
+   * Creates multiple collection instances by mapping over sections.
+   * Useful for generating collections for different categories or sections.
+   *
+   * @param sections - Array of section identifiers
+   * @param callback - Function to create a collection for each section
+   *
+   * @example
+   * ```ts
+   * const collections = Collection.multi(
+   *   ['api', 'guides', 'tutorials'],
+   *   (section) => new Collection({
+   *     schema: docsSchema,
+   *     loader: loaders.jsonLoader(`./docs/${section}.json`),
+   *     cache: true
+   *   })
+   * )
+   * // Results in: { api: Collection, guides: Collection, tutorials: Collection }
+   * ```
+   */
+  static multi<Section extends string, Callback extends (section: Section) => any>(
+    sections: Section[],
+    callback: Callback
+  ): {
+    [K in Section]: ReturnType<Callback>
+  } {
+    return sections.reduce(
+      (result, section) => {
+        result[section] = callback(section)
+        return result
+      },
+      {} as {
+        [K in Section]: ReturnType<Callback>
+      }
+    )
+  }
+
+  /**
    * Configures the Vite service instance for resolving asset paths.
    * This should be called once during application initialization.
    *

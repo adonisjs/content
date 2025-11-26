@@ -24,9 +24,6 @@ import {
  * Handles pagination automatically to retrieve all sponsors across multiple requests.
  *
  * @param options - Configuration options for fetching sponsors
- * @param options.login - GitHub username or organization name
- * @param options.isOrg - Whether the login is an organization (true) or user (false)
- * @param options.ghToken - GitHub personal access token for authentication
  *
  * @example
  * ```ts
@@ -160,11 +157,6 @@ export async function fetchAllSponsors({
  * Handles pagination and supports filtering releases by name patterns.
  *
  * @param options - Configuration options for fetching releases
- * @param options.org - GitHub organization name
- * @param options.ghToken - GitHub personal access token for authentication
- * @param options.filters - Optional filters to include/exclude releases by name patterns
- * @param options.filters.nameIncludes - Array of substrings that release names must contain
- * @param options.filters.nameDoesntInclude - Array of substrings that release names must not contain
  *
  * @example
  * ```ts
@@ -286,16 +278,12 @@ export async function fetchReleases({
  * Handles errors gracefully by logging warnings for failed repositories.
  *
  * @param options - Configuration options for fetching contributors
- * @param options.org - GitHub organization name
- * @param options.ghToken - GitHub personal access token for authentication
  *
  * @example
  * ```ts
  * const contributors = await fetchContributorsForOrg({
  *   org: 'adonisjs',
- *   ghToken: process.env.GITHUB_TOKEN,
- *   outputPath: './cache/contributors.json',
- *   refresh: 'weekly'
+ *   ghToken: process.env.GITHUB_TOKEN
  * })
  * ```
  */

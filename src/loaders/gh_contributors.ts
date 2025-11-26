@@ -123,7 +123,7 @@ export class GithubContributorsLoader<Schema extends SchemaTypes>
    * const contributors = await loader.load(contributorsSchema)
    * ```
    */
-  async load(schema: Schema, metadata?: any): Promise<Infer<Schema>> {
+  async load(schema: Schema, metadata?: any) {
     let existingContributors = await this.#loadExistingContributors()
     if (!existingContributors || this.#isExpired(new Date(existingContributors.lastFetched))) {
       debug('fetching contributors from github "%s"', this.#options.org)
