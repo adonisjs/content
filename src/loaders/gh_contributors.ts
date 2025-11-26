@@ -11,7 +11,7 @@ import dayjs from 'dayjs'
 import vine from '@vinejs/vine'
 import { dirname } from 'node:path'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { type Infer, type SchemaTypes } from '@vinejs/vine/types'
+import { type SchemaTypes } from '@vinejs/vine/types'
 
 import debug from '../debug.ts'
 import { fetchContributorsForOrg } from '../utils.ts'
