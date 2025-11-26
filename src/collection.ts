@@ -12,6 +12,7 @@ import { type Infer, type SchemaTypes } from '@vinejs/vine/types'
 
 import debug from './debug.ts'
 import { type CollectionOptions, type ViewFn, type ViewsToQueryMethods } from './types.js'
+import { type Prettify } from '@adonisjs/core/types/common'
 
 /**
  * Manages a collection of data with schema validation and custom view functions.
@@ -110,19 +111,47 @@ export class Collection<
    * // Results in: { api: Collection, guides: Collection, tutorials: Collection }
    * ```
    */
-  static multi<Section extends string, Callback extends (section: Section) => any>(
+  static multi<Section extends string, Callback extends (section: Section) => Collection<any, any>>(
     sections: Section[],
     callback: Callback
   ): {
     [K in Section]: ReturnType<Callback>
+  } & {
+    load(): Promise<{
+      [K in Section]: ReturnType<Callback> extends Collection<infer S, infer V>
+        ? Prettify<
+            {
+              all(): Infer<S>
+            } & ViewsToQueryMethods<V>
+          >
+        : never
+    }>
   } {
     return sections.reduce(
       (result, section) => {
-        result[section] = callback(section)
+        ;(result as any)[section] = callback(section)
         return result
       },
-      {} as {
+      {
+        async load() {
+          const views = {}
+          for (let section of sections) {
+            ;(views as any)[section] = await this[section].load()
+          }
+          return views
+        },
+      } as {
         [K in Section]: ReturnType<Callback>
+      } & {
+        load(): Promise<{
+          [K in Section]: ReturnType<Callback> extends Collection<infer S, infer V>
+            ? Prettify<
+                {
+                  all(): Infer<S>
+                } & ViewsToQueryMethods<V>
+              >
+            : never
+        }>
       }
     )
   }
@@ -199,9 +228,11 @@ export class Collection<
    * ```
    */
   async load(): Promise<
-    {
-      all(): Infer<Schema>
-    } & ViewsToQueryMethods<Views>
+    Prettify<
+      {
+        all(): Infer<Schema>
+      } & ViewsToQueryMethods<Views>
+    >
   > {
     const { data, views } = await this.hydrate()
 
@@ -210,6 +241,10 @@ export class Collection<
         return data
       },
       ...views,
-    }
+    } as Prettify<
+      {
+        all(): Infer<Schema>
+      } & ViewsToQueryMethods<Views>
+    >
   }
 }
