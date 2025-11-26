@@ -1,7 +1,7 @@
 {
   "name": "@adonisjs/content",
   "description": "Content management for AdonisJS with schema validation, GitHub loaders, and custom queries",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "engines": {
     "node": ">=24.0.0"
   },
