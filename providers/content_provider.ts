@@ -13,9 +13,12 @@ import { resolve } from 'node:path'
 import vine, { VineString } from '@vinejs/vine'
 import { type ApplicationService } from '@adonisjs/core/types'
 import { Collection } from '../src/collection.ts'
+import { readFile } from 'node:fs/promises'
 
 declare module '@vinejs/vine' {
   interface VineString {
+    toContents(): this
+
     /**
      * Converts a relative path to a Vite asset path.
      * This method transforms the path using Vite's asset resolution system.
@@ -45,8 +48,42 @@ declare module '@vinejs/vine' {
  * ```
  */
 const toVitePath = vine.createRule(function vitePath(value, _, field) {
-  field.mutate(field.meta.vite.assetPath(value), field)
+  if (typeof value === 'string') {
+    field.mutate(
+      field.meta.vite.assetPath(value.replace(/^\.\/|^\//, '').replace(/\/$/, '')),
+      field
+    )
+  }
 })
+
+/**
+ * Vine validation rule that reads the contents of a file at the given path
+ * and replaces the field value with the file contents.
+ *
+ * The path is resolved relative to the menu file root directory.
+ *
+ * @param value - The relative file path to read
+ * @param _ - Vine options (unused)
+ * @param field - The field context containing metadata and mutation methods
+ *
+ * @example
+ * ```ts
+ * const schema = vine.object({
+ *   content: vine.string().toContents()
+ * })
+ * ```
+ */
+const toContents = vine.createRule(
+  async function vitePath(value, _, field) {
+    if (typeof value === 'string') {
+      const absolutePath = resolve(field.meta.menuFileRoot, value)
+      field.mutate(await readFile(absolutePath, 'utf-8'), field)
+    }
+  },
+  {
+    isAsync: true,
+  }
+)
 
 /**
  * Vine validation rule that converts a relative path to an absolute file system path.
@@ -66,11 +103,46 @@ const toAbsolutePath = vine.createRule(function absolutePath(value, _, field) {
   field.mutate(resolve(field.meta.menuFileRoot, value as string), field)
 })
 
+/**
+ * Extends VineString with the `toVitePath` method.
+ *
+ * @example
+ * ```ts
+ * const schema = vine.object({
+ *   icon: vine.string().toVitePath()
+ * })
+ * ```
+ */
 VineString.macro('toVitePath', function (this: VineString) {
   return this.use(toVitePath())
 })
+
+/**
+ * Extends VineString with the `toAbsolutePath` method.
+ *
+ * @example
+ * ```ts
+ * const schema = vine.object({
+ *   file: vine.string().toAbsolutePath()
+ * })
+ * ```
+ */
 VineString.macro('toAbsolutePath', function (this: VineString) {
   return this.use(toAbsolutePath())
+})
+
+/**
+ * Extends VineString with the `toContents` method.
+ *
+ * @example
+ * ```ts
+ * const schema = vine.object({
+ *   readme: vine.string().toContents()
+ * })
+ * ```
+ */
+VineString.macro('toContents', function (this: VineString) {
+  return this.use(toContents())
 })
 
 /**
