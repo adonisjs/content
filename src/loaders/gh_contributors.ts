@@ -31,9 +31,9 @@ import type { GithubContributorNode, GithubContributorsOptions, LoaderContract }
  * })
  * ```
  */
-export class GithubContributorsLoader<Schema extends SchemaTypes>
-  implements LoaderContract<Schema>
-{
+export class GithubContributorsLoader<
+  Schema extends SchemaTypes,
+> implements LoaderContract<Schema> {
   /** Configuration options for the GitHub contributors loader */
   #options: GithubContributorsOptions
 
