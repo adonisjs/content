@@ -18,6 +18,10 @@ import {
   type GithubContributorNode,
   type GithubContributorsOptions,
 } from './types.ts'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import debug from './debug.ts'
+import dayjs from 'dayjs'
+import { dirname } from 'node:path'
 
 /**
  * Fetches all sponsors for a GitHub user or organization using GraphQL API.
@@ -371,4 +375,184 @@ export function mergeArrays<T, K extends keyof T>(existing: T[], fresh: T[], key
   }
 
   return deduped
+}
+
+/**
+ * Aggregates total npm package downloads across multiple packages from their start dates to today.
+ * Fetches download statistics from the npm registry API for each package and sums them up.
+ *
+ * @param packages - Array of package objects containing name and start date for tracking downloads
+ *
+ * @example
+ * ```ts
+ * const total = await aggregateInstalls([
+ *   { name: '@adonisjs/core', startDate: '2020-01-01' },
+ *   { name: '@adonisjs/lucid', startDate: '2020-01-01' }
+ * ])
+ * console.log(`Total downloads: ${total}`)
+ * ```
+ */
+export async function aggregateInstalls(packages: { name: string; startDate: string }[]) {
+  let total = 0
+  for (let pkg of packages) {
+    const startDate = pkg.startDate
+    const endDate = new Date().toISOString().split('T')[0]
+    const res = await fetch(
+      `https://api.npmjs.org/downloads/point/${startDate}:${endDate}/${pkg.name}`
+    )
+    const data = (await res.json()) as { downloads: number }
+    total += data.downloads
+  }
+  return total
+}
+
+/**
+ * Aggregates the total number of GitHub stars across all public, non-archived repositories
+ * in a GitHub organization. Uses pagination to fetch all repositories and sum their stars.
+ *
+ * @param options - Configuration object containing organization name and GitHub token
+ *
+ * @example
+ * ```ts
+ * const stars = await aggregateStars({
+ *   org: 'adonisjs',
+ *   ghToken: process.env.GITHUB_TOKEN
+ * })
+ * console.log(`Total stars: ${stars}`)
+ * ```
+ */
+export async function aggregateStars({
+  org,
+  ghToken,
+}: {
+  org: string
+  ghToken: string
+}): Promise<number> {
+  let totalStars = 0
+
+  const octokit = new Octokit({ auth: ghToken })
+  await octokit.paginate(
+    octokit.repos.listForOrg,
+    {
+      org,
+      type: 'public',
+      per_page: 100,
+    },
+    (response) => {
+      for (const repo of response.data) {
+        if (!repo.archived && repo.stargazers_count) {
+          totalStars += repo.stargazers_count
+        }
+      }
+      return response.data
+    }
+  )
+
+  return totalStars
+}
+
+/**
+ * Creates a cache manager for storing and retrieving data with time-based expiration.
+ * The cache is persisted to disk as JSON and automatically expires based on the configured refresh interval.
+ *
+ * @param options - Configuration object for the cache
+ * @param options.key - The key name for storing the cached data in the JSON file
+ * @param options.outputPath - The file system path where the cache file will be stored
+ * @param options.contents - The initial contents (not used in the implementation, appears to be unused parameter)
+ * @param options.refresh - The refresh interval: 'daily', 'weekly', or 'monthly'
+ *
+ * @example
+ * ```ts
+ * const sponsorsCache = createCache({
+ *   key: 'sponsors',
+ *   outputPath: './cache/sponsors.json',
+ *   contents: [],
+ *   refresh: 'daily'
+ * })
+ *
+ * // Try to get cached data
+ * const cachedSponsors = await sponsorsCache.get()
+ * if (!cachedSponsors) {
+ *   // Cache expired or doesn't exist, fetch fresh data
+ *   const freshSponsors = await fetchAllSponsors({ ... })
+ *   await sponsorsCache.put(freshSponsors)
+ * }
+ * ```
+ */
+export function createCache<T>({
+  key,
+  outputPath,
+  refresh,
+}: {
+  key: string
+  outputPath: string
+  contents: T
+  refresh: 'daily' | 'weekly' | 'monthly'
+}) {
+  /**
+   * Checks if the cached data has expired based on the refresh interval.
+   *
+   * @param fetchDate - The date when the data was last fetched
+   */
+  function isExpired(fetchDate: Date) {
+    switch (refresh) {
+      case 'daily':
+        return dayjs().isAfter(fetchDate, 'day')
+      case 'weekly':
+        return dayjs().isAfter(fetchDate, 'week')
+      case 'monthly':
+        return dayjs().isAfter(fetchDate, 'month')
+    }
+  }
+
+  return {
+    /**
+     * Retrieves cached data from disk if it exists and hasn't expired.
+     * Returns null if the cache doesn't exist, is expired, or the file is not found.
+     *
+     * @example
+     * ```ts
+     * const data = await cache.get()
+     * if (data === null) {
+     *   console.log('Cache expired or not found')
+     * }
+     * ```
+     */
+    async get() {
+      try {
+        debug('loading %s from file "%s"', key, outputPath)
+        const cachedContents = JSON.parse(await readFile(outputPath, 'utf-8'))
+        if (!cachedContents || isExpired(new Date(cachedContents.lastFetched))) {
+          return null
+        }
+        return cachedContents[key]
+      } catch (error) {
+        if (error.code !== 'ENOENT') {
+          throw error
+        }
+      }
+
+      return null
+    },
+
+    /**
+     * Saves data to the cache file with the current timestamp.
+     * Creates the directory structure if it doesn't exist.
+     *
+     * @param contents - The data to cache
+     *
+     * @example
+     * ```ts
+     * const freshData = await fetchDataFromAPI()
+     * await cache.put(freshData)
+     * ```
+     */
+    async put(contents: T): Promise<T> {
+      debug('caching %s "%s"', key, outputPath)
+      const fileContents = { lastFetched: new Date().toISOString(), [key]: contents }
+      await mkdir(dirname(outputPath), { recursive: true })
+      await writeFile(outputPath, JSON.stringify(fileContents))
+      return contents
+    },
+  }
 }

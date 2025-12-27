@@ -280,6 +280,56 @@ export type GithubContributorsOptions = {
 }
 
 /**
+ * Configuration options for loading and caching open source statistics from multiple sources.
+ * Supports aggregating data from GitHub organizations and npm package downloads.
+ *
+ * @example
+ * ```ts
+ * const options: OssStatsOptions = {
+ *   outputPath: './cache/oss-stats.json',
+ *   refresh: 'daily',
+ *   sources: [
+ *     {
+ *       type: 'github',
+ *       org: 'adonisjs',
+ *       ghToken: process.env.GITHUB_TOKEN
+ *     },
+ *     {
+ *       type: 'npm',
+ *       packages: [
+ *         { name: '@adonisjs/core', startDate: '2020-01-01' },
+ *         { name: '@adonisjs/lucid', startDate: '2020-01-01' }
+ *       ]
+ *     }
+ *   ]
+ * }
+ * ```
+ */
+export type OssStatsOptions = {
+  /** Path where cached stats will be stored */
+  outputPath: string
+  /** How often to refresh the cached data */
+  refresh: 'daily' | 'weekly' | 'monthly'
+  /** Array of data sources to aggregate statistics from */
+  sources: (
+    | {
+        /** Source type: GitHub organization statistics */
+        type: 'github'
+        /** GitHub organization name */
+        org: string
+        /** GitHub personal access token for authentication */
+        ghToken: string
+      }
+    | {
+        /** Source type: npm package download statistics */
+        type: 'npm'
+        /** Array of npm packages with their tracking start dates */
+        packages: [{ name: string; startDate: string }]
+      }
+  )[]
+}
+
+/**
  * Represents a GitHub contributor with their profile information and contribution count.
  * This matches the shape returned by GitHub REST API /contributors endpoint.
  *
