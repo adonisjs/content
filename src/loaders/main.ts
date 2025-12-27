@@ -11,11 +11,13 @@ import {
   type GithubSponsorsOptions,
   type GithubReleasesOptions,
   type GithubContributorsOptions,
+  type OssStatsOptions,
 } from '../types.ts'
+import { JsonLoader } from './json.ts'
+import { OssStatsLoader } from './oss_stats.ts'
 import { GithubSponsorsLoader } from './gh_sponsors.ts'
 import { GithubReleasesLoader } from './gh_releases.ts'
 import { GithubContributorsLoader } from './gh_contributors.ts'
-import { JsonLoader } from './json.ts'
 
 /**
  * Factory functions for creating content loaders.
@@ -96,6 +98,36 @@ export const loaders = {
    */
   ghReleases(options: GithubReleasesOptions) {
     return new GithubReleasesLoader(options)
+  },
+
+  /**
+   * Creates an OSS statistics loader instance.
+   *
+   * @param options - Configuration options for the OSS stats loader
+   *
+   * @example
+   * ```ts
+   * const loader = loaders.ossStats({
+   *   outputPath: './cache/oss-stats.json',
+   *   refresh: 'daily',
+   *   sources: [
+   *     {
+   *       type: 'github',
+   *       org: 'adonisjs',
+   *       ghToken: process.env.GITHUB_TOKEN
+   *     },
+   *     {
+   *       type: 'npm',
+   *       packages: [
+   *         { name: '@adonisjs/core', startDate: '2020-01-01' }
+   *       ]
+   *     }
+   *   ]
+   * })
+   * ```
+   */
+  ossStats(options: OssStatsOptions) {
+    return new OssStatsLoader(options)
   },
 
   /**
