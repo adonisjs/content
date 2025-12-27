@@ -89,23 +89,31 @@ export class OssStatsLoader<Schema extends SchemaTypes> implements LoaderContrac
    * ```
    */
   async #fetchStats(): Promise<OssStats> {
-    let totalStars = 0
-    let totalInstalls = 0
+    const aggregates: { key: string; count: number }[] = []
 
     for (const source of this.#options.sources) {
-      if (source.type === 'github') {
-        const stars = await aggregateStars({
-          org: source.org,
-          ghToken: source.ghToken,
+      if (typeof source === 'function') {
+        aggregates.push(await source())
+      } else if (source.type === 'github') {
+        aggregates.push({
+          key: 'stars',
+          count: await aggregateStars({
+            org: source.org,
+            ghToken: source.ghToken,
+          }),
         })
-        totalStars += stars
       } else if (source.type === 'npm') {
-        const installs = await aggregateInstalls(source.packages)
-        totalInstalls += installs
+        aggregates.push({
+          key: 'installs',
+          count: await aggregateInstalls(source.packages),
+        })
       }
     }
 
-    return { stars: totalStars, installs: totalInstalls }
+    return aggregates.reduce<OssStats>((result, { key, count }) => {
+      result[key] = count
+      return result
+    }, {} as OssStats)
   }
 
   /**

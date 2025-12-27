@@ -324,8 +324,12 @@ export type OssStatsOptions = {
         /** Source type: npm package download statistics */
         type: 'npm'
         /** Array of npm packages with their tracking start dates */
-        packages: [{ name: string; startDate: string }]
+        packages: { name: string; startDate: string }[]
       }
+    | (() => Promise<{
+        key: string
+        count: number
+      }>)
   )[]
 }
 
@@ -337,7 +341,7 @@ export type OssStats = {
   stars: number
   /** Total npm package downloads across all sources */
   installs: number
-}
+} & Record<string, number>
 
 /**
  * Represents a GitHub contributor with their profile information and contribution count.
