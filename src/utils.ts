@@ -48,6 +48,7 @@ export async function fetchAllSponsors({
       id: string
       createdAt: string
       privacyLevel: string | null
+      isActive: boolean
       sponsorEntity: {
         login: string
         name?: string | null
@@ -57,6 +58,7 @@ export async function fetchAllSponsors({
       }
       tier: {
         name: string | null
+        isOneTime: boolean
         monthlyPriceInCents: number | null
       } | null
     }[]
@@ -74,8 +76,10 @@ export async function fetchAllSponsors({
             id
             createdAt
             privacyLevel
+            isActive
             tier {
               name
+              isOneTime
               monthlyPriceInCents
             }
             sponsorEntity {
@@ -357,9 +361,9 @@ export async function fetchContributorsForOrg({
  */
 export function mergeArrays<T, K extends keyof T>(existing: T[], fresh: T[], key: K) {
   const seen = new Set<any>()
-  const deduped: T[] = [...existing]
+  const deduped: T[] = []
 
-  for (const r of fresh) {
+  for (const r of [...existing, ...fresh]) {
     if (!seen.has(r[key])) {
       seen.add(r[key])
       deduped.push(r)
