@@ -78,10 +78,9 @@ export class OssStatsLoader<Schema extends SchemaTypes> implements LoaderContrac
    */
   constructor(options: OssStatsOptions) {
     this.#options = options
-    this.#cache = createCache({
+    this.#cache = createCache<OssStats>({
       key: 'ossStats',
       outputPath: options.outputPath,
-      contents: { stars: 0, installs: 0 } as OssStats,
       refresh: options.refresh,
     })
   }

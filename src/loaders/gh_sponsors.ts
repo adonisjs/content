@@ -53,10 +53,9 @@ export class GithubSponsorsLoader<Schema extends SchemaTypes> implements LoaderC
    */
   constructor(options: GithubSponsorsOptions) {
     this.#options = options
-    this.#cache = createCache({
+    this.#cache = createCache<GithubSponsor[]>({
       key: 'sponsors',
       outputPath: options.outputPath,
-      contents: [] as GithubSponsor[],
       refresh: options.refresh,
     })
   }

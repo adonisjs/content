@@ -53,10 +53,9 @@ export class GithubContributorsLoader<
    */
   constructor(options: GithubContributorsOptions) {
     this.#options = options
-    this.#cache = createCache({
+    this.#cache = createCache<GithubContributorNode[]>({
       key: 'contributors',
       outputPath: options.outputPath,
-      contents: [] as GithubContributorNode[],
       refresh: options.refresh,
     })
   }

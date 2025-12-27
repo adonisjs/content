@@ -54,10 +54,9 @@ export class GithubReleasesLoader<Schema extends SchemaTypes> implements LoaderC
    */
   constructor(options: GithubReleasesOptions) {
     this.#options = options
-    this.#cache = createCache({
+    this.#cache = createCache<GithubReleaseWithRepo[]>({
       key: 'releases',
       outputPath: options.outputPath,
-      contents: [] as GithubReleaseWithRepo[],
       refresh: options.refresh,
     })
   }

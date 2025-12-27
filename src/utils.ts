@@ -486,7 +486,6 @@ export function createCache<T>({
 }: {
   key: string
   outputPath: string
-  contents: T
   refresh: 'daily' | 'weekly' | 'monthly'
 }) {
   /**

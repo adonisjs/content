@@ -13,10 +13,9 @@ import { createCache } from '../../src/utils.ts'
 
 test.group('createCache', () => {
   test('should save and retrieve data from cache', async ({ assert, fs }) => {
-    const cache = createCache({
+    const cache = createCache<string[]>({
       key: 'testData',
       outputPath: join(fs.basePath, 'cache.json'),
-      contents: [] as string[],
       refresh: 'daily',
     })
 
@@ -28,10 +27,9 @@ test.group('createCache', () => {
   })
 
   test('should return null when cache file does not exist', async ({ assert, fs }) => {
-    const cache = createCache({
+    const cache = createCache<string[]>({
       key: 'testData',
       outputPath: join(fs.basePath, 'non-existent-cache.json'),
-      contents: [] as string[],
       refresh: 'daily',
     })
 
@@ -40,10 +38,9 @@ test.group('createCache', () => {
   })
 
   test('should create directories if they do not exist', async ({ assert, fs }) => {
-    const cache = createCache({
+    const cache = createCache<string[]>({
       key: 'testData',
       outputPath: join(fs.basePath, 'nested', 'dir', 'cache.json'),
-      contents: [] as string[],
       refresh: 'daily',
     })
 
@@ -54,10 +51,9 @@ test.group('createCache', () => {
   })
 
   test('should store data under the correct key', async ({ assert, fs }) => {
-    const cache = createCache({
+    const cache = createCache<{ value: string }>({
       key: 'mySpecialKey',
       outputPath: join(fs.basePath, 'cache.json'),
-      contents: { value: 'test' },
       refresh: 'daily',
     })
 
@@ -72,10 +68,9 @@ test.group('createCache', () => {
   })
 
   test('should return null for expired daily cache', async ({ assert, fs }) => {
-    const cache = createCache({
+    const cache = createCache<string[]>({
       key: 'testData',
       outputPath: join(fs.basePath, 'cache.json'),
-      contents: [] as string[],
       refresh: 'daily',
     })
 
@@ -96,10 +91,9 @@ test.group('createCache', () => {
   })
 
   test('should return data for non-expired daily cache', async ({ assert, fs }) => {
-    const cache = createCache({
+    const cache = createCache<string[]>({
       key: 'testData',
       outputPath: join(fs.basePath, 'cache.json'),
-      contents: [] as string[],
       refresh: 'daily',
     })
 
@@ -119,10 +113,9 @@ test.group('createCache', () => {
   })
 
   test('should return null for expired weekly cache', async ({ assert, fs }) => {
-    const cache = createCache({
+    const cache = createCache<string[]>({
       key: 'testData',
       outputPath: join(fs.basePath, 'cache.json'),
-      contents: [] as string[],
       refresh: 'weekly',
     })
 
@@ -142,10 +135,9 @@ test.group('createCache', () => {
   })
 
   test('should return data for non-expired weekly cache', async ({ assert, fs }) => {
-    const cache = createCache({
+    const cache = createCache<string[]>({
       key: 'testData',
       outputPath: join(fs.basePath, 'cache.json'),
-      contents: [] as string[],
       refresh: 'weekly',
     })
 
@@ -165,10 +157,9 @@ test.group('createCache', () => {
   })
 
   test('should return null for expired monthly cache', async ({ assert, fs }) => {
-    const cache = createCache({
+    const cache = createCache<string[]>({
       key: 'testData',
       outputPath: join(fs.basePath, 'cache.json'),
-      contents: [] as string[],
       refresh: 'monthly',
     })
 
@@ -188,10 +179,9 @@ test.group('createCache', () => {
   })
 
   test('should return data for non-expired monthly cache', async ({ assert, fs }) => {
-    const cache = createCache({
+    const cache = createCache<string[]>({
       key: 'testData',
       outputPath: join(fs.basePath, 'cache.json'),
-      contents: [] as string[],
       refresh: 'monthly',
     })
 
@@ -211,17 +201,15 @@ test.group('createCache', () => {
   })
 
   test('should handle different types of data', async ({ assert, fs }) => {
-    const cache1 = createCache({
+    const cache1 = createCache<string[]>({
       key: 'stringCache',
       outputPath: join(fs.basePath, 'strings.json'),
-      contents: [] as string[],
       refresh: 'daily',
     })
 
-    const cache2 = createCache({
+    const cache2 = createCache<number[]>({
       key: 'numberCache',
       outputPath: join(fs.basePath, 'numbers.json'),
-      contents: [] as number[],
       refresh: 'daily',
     })
 
@@ -236,10 +224,9 @@ test.group('createCache', () => {
   })
 
   test('should throw error for invalid JSON in cache file', async ({ assert, fs }) => {
-    const cache = createCache({
+    const cache = createCache<string[]>({
       key: 'testData',
       outputPath: join(fs.basePath, 'invalid.json'),
-      contents: [] as string[],
       refresh: 'daily',
     })
 
@@ -262,10 +249,9 @@ test.group('createCache', () => {
       }
     }
 
-    const cache = createCache({
+    const cache = createCache<ComplexData[]>({
       key: 'complexData',
       outputPath: join(fs.basePath, 'complex.json'),
-      contents: [] as ComplexData[],
       refresh: 'daily',
     })
 
@@ -288,10 +274,9 @@ test.group('createCache', () => {
   })
 
   test('should return data when cache has malformed lastFetched', async ({ assert, fs }) => {
-    const cache = createCache({
+    const cache = createCache<string[]>({
       key: 'testData',
       outputPath: join(fs.basePath, 'cache.json'),
-      contents: [] as string[],
       refresh: 'daily',
     })
 
@@ -308,10 +293,9 @@ test.group('createCache', () => {
   })
 
   test('should overwrite existing cache data when put is called', async ({ assert, fs }) => {
-    const cache = createCache({
+    const cache = createCache<string[]>({
       key: 'testData',
       outputPath: join(fs.basePath, 'cache.json'),
-      contents: [] as string[],
       refresh: 'daily',
     })
 
@@ -325,10 +309,9 @@ test.group('createCache', () => {
   })
 
   test('should return the same data that was put', async ({ assert, fs }) => {
-    const cache = createCache({
+    const cache = createCache<string[]>({
       key: 'testData',
       outputPath: join(fs.basePath, 'cache.json'),
-      contents: [] as string[],
       refresh: 'daily',
     })
 
