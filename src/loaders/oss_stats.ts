@@ -11,17 +11,7 @@ import vine from '@vinejs/vine'
 import { type SchemaTypes } from '@vinejs/vine/types'
 
 import { createCache, aggregateStars, aggregateInstalls } from '../utils.ts'
-import type { OssStatsOptions, LoaderContract } from '../types.ts'
-
-/**
- * Type representing the aggregated open source statistics
- */
-export type OssStats = {
-  /** Total GitHub stars across all sources */
-  stars: number
-  /** Total npm package downloads across all sources */
-  installs: number
-}
+import type { OssStatsOptions, LoaderContract, OssStats } from '../types.ts'
 
 /**
  * A loader that aggregates open source statistics from multiple sources.

@@ -15,7 +15,8 @@ We use this package for all official AdonisJS websites to manage docs, blog post
 **Key Features:**
 
 - **Type-safe collections** with VineJS schema validation
-- **GitHub loaders** for sponsors, releases, and contributors
+- **GitHub loaders** for sponsors, releases, contributors, and aggregated OSS statistics
+- **npm package statistics** aggregation with download counts
 - **Custom query methods** for filtering and transforming data
 - **JSON file loading** with validation
 - **Vite integration** for asset path resolution
@@ -176,6 +177,52 @@ const contributors = new Collection({
       contributors.sort((a, b) => b.contributions - a.contributions).slice(0, limit),
   },
 })
+```
+
+### OSS Stats Loader
+
+Aggregate open source statistics from multiple sources including GitHub stars and npm package downloads:
+
+```ts
+import vine from '@vinejs/vine'
+import app from '@adonisjs/core/services/app'
+import { Collection } from '@adonisjs/content'
+import { loaders } from '@adonisjs/content/loaders'
+
+const statsSchema = vine.object({
+  stars: vine.number(),
+  installs: vine.number(),
+})
+
+const ossStatsLoader = loaders.ossStats({
+  outputPath: app.makePath('cache/oss-stats.json'),
+  refresh: 'daily',
+  sources: [
+    {
+      type: 'github',
+      org: 'adonisjs',
+      ghToken: process.env.GITHUB_TOKEN!,
+    },
+    {
+      type: 'npm',
+      packages: [
+        { name: '@adonisjs/core', startDate: '2020-01-01' },
+        { name: '@adonisjs/lucid', startDate: '2020-01-01' },
+      ],
+    },
+  ],
+})
+
+const ossStats = new Collection({
+  schema: statsSchema,
+  loader: ossStatsLoader,
+  cache: true,
+})
+
+const query = await ossStats.load()
+const stats = query.all()
+console.log(`Total GitHub stars: ${stats.stars}`)
+console.log(`Total npm downloads: ${stats.installs}`)
 ```
 
 ### Custom Views

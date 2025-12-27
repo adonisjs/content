@@ -330,6 +330,16 @@ export type OssStatsOptions = {
 }
 
 /**
+ * Type representing the aggregated open source statistics
+ */
+export type OssStats = {
+  /** Total GitHub stars across all sources */
+  stars: number
+  /** Total npm package downloads across all sources */
+  installs: number
+}
+
+/**
  * Represents a GitHub contributor with their profile information and contribution count.
  * This matches the shape returned by GitHub REST API /contributors endpoint.
  *
