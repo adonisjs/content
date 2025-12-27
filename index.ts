@@ -9,3 +9,4 @@
 
 export { Collection } from './src/collection.ts'
 export { configure } from './configure.ts'
+export { createCache } from './src/utils.ts'
