@@ -7,14 +7,10 @@
  * file that was distributed with this source code.
  */
 
-import dayjs from 'dayjs'
 import vine from '@vinejs/vine'
-import { dirname } from 'node:path'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { type SchemaTypes } from '@vinejs/vine/types'
 
-import debug from '../debug.ts'
-import { fetchAllSponsors } from '../utils.ts'
+import { createCache, fetchAllSponsors } from '../utils.ts'
 import type { GithubSponsor, GithubSponsorsOptions, LoaderContract } from '../types.ts'
 
 /**
@@ -36,6 +32,9 @@ export class GithubSponsorsLoader<Schema extends SchemaTypes> implements LoaderC
   /** Configuration options for the GitHub sponsors loader */
   #options: GithubSponsorsOptions
 
+  /** Cache instance for storing and retrieving sponsors data */
+  #cache: ReturnType<typeof createCache<GithubSponsor[]>>
+
   /**
    * Creates a new GitHub sponsors loader instance.
    *
@@ -54,60 +53,12 @@ export class GithubSponsorsLoader<Schema extends SchemaTypes> implements LoaderC
    */
   constructor(options: GithubSponsorsOptions) {
     this.#options = options
-  }
-
-  /**
-   * Loads previously cached sponsors from the output file.
-   * Returns an object containing lastFetched timestamp and sponsors array,
-   * or null if the file doesn't exist.
-   *
-   * @internal
-   */
-  async #loadExistingSponsors(): Promise<{
-    lastFetched: string
-    sponsors: GithubSponsor[]
-  } | null> {
-    try {
-      debug('loading existing sponsors file "%s"', this.#options.outputPath)
-      return JSON.parse(await readFile(this.#options.outputPath, 'utf-8'))
-    } catch (error) {
-      if (error.code !== 'ENOENT') {
-        throw error
-      }
-    }
-    return null
-  }
-
-  /**
-   * Writes sponsors to the cache file with the current timestamp.
-   * Creates the output directory if it doesn't exist.
-   *
-   * @param sponsors - Array of GitHub sponsors to cache
-   * @internal
-   */
-  async #cacheSponsors(sponsors: GithubSponsor[]) {
-    debug('caching sponsors "%s"', this.#options.outputPath)
-    const fileContents = { lastFetched: new Date().toISOString(), sponsors }
-    await mkdir(dirname(this.#options.outputPath), { recursive: true })
-    await writeFile(this.#options.outputPath, JSON.stringify(fileContents))
-    return fileContents
-  }
-
-  /**
-   * Determines if the cached data has expired based on the refresh schedule.
-   *
-   * @param fetchDate - The date when data was last fetched
-   * @internal
-   */
-  #isExpired(fetchDate: Date) {
-    switch (this.#options.refresh) {
-      case 'daily':
-        return dayjs().isAfter(fetchDate, 'day')
-      case 'weekly':
-        return dayjs().isAfter(fetchDate, 'week')
-      case 'monthly':
-        return dayjs().isAfter(fetchDate, 'month')
-    }
+    this.#cache = createCache({
+      key: 'sponsors',
+      outputPath: options.outputPath,
+      contents: [] as GithubSponsor[],
+      refresh: options.refresh,
+    })
   }
 
   /**
@@ -124,16 +75,15 @@ export class GithubSponsorsLoader<Schema extends SchemaTypes> implements LoaderC
    * ```
    */
   async load(schema: Schema, metadata?: any) {
-    let existingSponsors = await this.#loadExistingSponsors()
-    if (!existingSponsors || this.#isExpired(new Date(existingSponsors.lastFetched))) {
-      debug('fetching sponsors from github "%s"', this.#options.login)
-      const sponsors = await fetchAllSponsors(this.#options)
-      existingSponsors = await this.#cacheSponsors(sponsors)
+    let sponsors = await this.#cache.get()
+    if (!sponsors) {
+      sponsors = await fetchAllSponsors(this.#options)
+      await this.#cache.put(sponsors)
     }
 
     return vine.validate({
       schema,
-      data: existingSponsors.sponsors,
+      data: sponsors,
       meta: metadata,
     })
   }
