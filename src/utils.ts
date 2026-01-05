@@ -42,6 +42,7 @@ export async function fetchAllSponsors({
   login,
   isOrg,
   ghToken,
+  includeInactive,
 }: GithubSponsorsOptions): Promise<GithubSponsor[]> {
   let hasNext = true
   let cursor: string | null = null
@@ -73,9 +74,9 @@ export async function fetchAllSponsors({
   }
 
   const query = `
-    query($login: String!, $cursor: String) {
+    query($login: String!, $cursor: String, $activeOnly: Boolean) {
       ${isOrg ? `organization(login: $login)` : `user(login: $login)`} {
-        sponsorshipsAsMaintainer(first: 100, after: $cursor) {
+        sponsorshipsAsMaintainer(first: 100, after: $cursor, activeOnly: $activeOnly) {
           nodes {
             id
             createdAt
@@ -125,6 +126,7 @@ export async function fetchAllSponsors({
       },
       login,
       cursor,
+      activeOnly: includeInactive === true ? false : true,
     })
 
     const root = isOrg ? data.organization : data.user
@@ -142,6 +144,7 @@ export async function fetchAllSponsors({
       allSponsors.push({
         id: node.id,
         createdAt: node.createdAt,
+        isActive: node.isActive,
         privacyLevel: node.privacyLevel,
         tierName: node.tier?.name ?? null,
         tierMonthlyPriceInCents: node.tier?.monthlyPriceInCents ?? null,

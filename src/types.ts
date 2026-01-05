@@ -160,6 +160,7 @@ export type GithubReleasesOptions = {
 export type GithubSponsor = {
   /** Unique identifier for the sponsorship */
   id: string
+  isActive: boolean
   /** ISO 8601 timestamp when the sponsorship was created */
   createdAt: string
   /** Privacy level of the sponsorship (PUBLIC, PRIVATE, etc.) */
@@ -197,6 +198,7 @@ export type GithubSponsor = {
 export type GithubSponsorsOptions = {
   /** GitHub username or organization name */
   login: string
+  includeInactive?: boolean
   /** Whether the login is an organization (true) or user (false) */
   isOrg: boolean
   /** GitHub personal access token for authentication */
