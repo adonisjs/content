@@ -19,6 +19,7 @@ test.group('Github sponsors loader', () => {
       vine.object({
         id: vine.string(),
         createdAt: vine.string(),
+        isActive: vine.boolean(),
         privacyLevel: vine.string().nullable(),
         tierName: vine.string().nullable(),
         tierMonthlyPriceInCents: vine.number().nullable(),
@@ -41,5 +42,5 @@ test.group('Github sponsors loader', () => {
     const sponsors = await ghSponsorsLoader.load(releasesSchema)
     assert.isArray(sponsors)
     assert.exists(sponsors[0].sponsorLogin)
-  })
+  }).disableTimeout()
 })

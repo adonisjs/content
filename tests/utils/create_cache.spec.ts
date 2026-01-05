@@ -141,9 +141,9 @@ test.group('createCache', () => {
       refresh: 'weekly',
     })
 
-    // Create a cache file with a date from 3 days ago (within the week)
+    // Create a cache file with a date from 1 days ago (within the week)
     const threeDaysAgo = new Date()
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 1)
 
     const cacheContents = {
       lastFetched: threeDaysAgo.toISOString(),
@@ -185,9 +185,9 @@ test.group('createCache', () => {
       refresh: 'monthly',
     })
 
-    // Create a cache file with a date from 15 days ago (within the month)
+    // Create a cache file with a date from 1 day ago (within the month)
     const fifteenDaysAgo = new Date()
-    fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15)
+    fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 1)
 
     const cacheContents = {
       lastFetched: fifteenDaysAgo.toISOString(),

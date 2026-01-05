@@ -33,7 +33,6 @@ test.group('Github contributors loader', () => {
     })
 
     const contributors = await ghContributorsLoader.load(contributorsSchema)
-    console.log(contributors.length)
     assert.isArray(contributors)
     assert.exists(contributors[0].login)
   }).disableTimeout()

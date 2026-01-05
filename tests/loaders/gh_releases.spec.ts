@@ -35,5 +35,5 @@ test.group('Github releases loader', () => {
     const releases = await ghReleaseLoader.load(releasesSchema)
     assert.isArray(releases)
     assert.exists(releases[0].url)
-  })
+  }).disableTimeout()
 })
