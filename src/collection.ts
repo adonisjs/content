@@ -13,6 +13,7 @@ import { type Infer, type SchemaTypes } from '@vinejs/vine/types'
 import debug from './debug.ts'
 import { type CollectionOptions, type ViewFn, type ViewsToQueryMethods } from './types.js'
 import { type Prettify } from '@adonisjs/core/types/common'
+import { type Application } from '@adonisjs/core/app'
 
 /**
  * Manages a collection of data with schema validation and custom view functions.
@@ -44,6 +45,7 @@ export class Collection<
   Views extends Record<string, ViewFn<Schema, any, any>>,
 > {
   static #vite?: Vite
+  static #app?: Application<any>
   /** Collection configuration options */
   #options: CollectionOptions<Schema, Views>
   /** Cached validated data */
@@ -171,6 +173,10 @@ export class Collection<
     this.#vite = vite
   }
 
+  static useApp(app: Application<any>) {
+    this.#app = app
+  }
+
   /**
    * Loads and validates data using the configured loader and schema.
    * Returns cached data if caching is enabled and data was previously loaded.
@@ -192,6 +198,7 @@ export class Collection<
     debug('computing data')
     this.#data = await this.#options.loader.load(this.#options.schema, {
       vite: Collection.#vite,
+      app: Collection.#app,
       ...this.#options.validatorMetaData,
     })
 

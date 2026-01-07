@@ -9,7 +9,7 @@
 
 /// <reference types="@adonisjs/vite/vite_provider" />
 
-import { resolve } from 'node:path'
+import { isAbsolute, resolve } from 'node:path'
 import vine, { VineString } from '@vinejs/vine'
 import { type ApplicationService } from '@adonisjs/core/types'
 import { Collection } from '../src/collection.ts'
@@ -49,10 +49,8 @@ declare module '@vinejs/vine' {
  */
 const toVitePath = vine.createRule(function vitePath(value, _, field) {
   if (typeof value === 'string') {
-    field.mutate(
-      field.meta.vite.assetPath(value.replace(/^\.\/|^\//, '').replace(/\/$/, '')),
-      field
-    )
+    value = isAbsolute(value) ? value : resolve(field.meta.menuFileRoot, value)
+    field.mutate(field.meta.vite.assetPath(field.meta.app.relativePath(value)), field)
   }
 })
 
@@ -74,7 +72,7 @@ const toVitePath = vine.createRule(function vitePath(value, _, field) {
  * ```
  */
 const toContents = vine.createRule(
-  async function vitePath(value, _, field) {
+  async function contents(value, _, field) {
     if (typeof value === 'string') {
       const absolutePath = resolve(field.meta.menuFileRoot, value)
       field.mutate(await readFile(absolutePath, 'utf-8'), field)
@@ -175,6 +173,7 @@ export default class ContentProvider {
    * the Collection class to use Vite's asset resolution system.
    */
   async boot() {
+    Collection.useApp(this.app)
     if (this.app.container.hasBinding('vite')) {
       const vite = await this.app.container.make('vite')
       Collection.useVite(vite)
