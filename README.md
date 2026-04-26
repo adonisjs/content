@@ -268,7 +268,8 @@ Each card resolves to:
 
 ```ts
 {
-  id: string
+  id: string                        // GraphQL node ID (e.g. "PVTI_lADO...")
+  databaseId: number | null         // integer ID for deep-linking, see below
   type: 'ISSUE' | 'PULL_REQUEST' | 'DRAFT_ISSUE'
   title: string
   url: string | null
@@ -283,6 +284,12 @@ Each card resolves to:
   summary: string | null
   customFields: Record<string, string | number | null>
 }
+```
+
+For draft issues, `url` is `null` since they have no GitHub-hosted page. Use `databaseId` to build a deep-link into the project board view:
+
+```ts
+const url = `https://github.com/orgs/${login}/projects/${projectNumber}?pane=issue&itemId=${card.databaseId}`
 ```
 
 ### OSS Stats Loader

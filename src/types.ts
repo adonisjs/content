@@ -414,8 +414,14 @@ export type GithubProjectAssignee = {
  * ```
  */
 export type GithubProjectCard = {
-  /** Project item node ID */
+  /** Project item node ID (e.g. "PVTI_lADO...") */
   id: string
+  /**
+   * Project item integer database ID. Use this to deep-link into the project
+   * board for any card (including draft issues), e.g.
+   * `https://github.com/orgs/<login>/projects/<projectNumber>?pane=issue&itemId=<databaseId>`.
+   */
+  databaseId: number | null
   /** Underlying content type for the card */
   type: 'ISSUE' | 'PULL_REQUEST' | 'DRAFT_ISSUE'
   /** Card title */
@@ -527,6 +533,7 @@ export type GithubProjectFieldValueNode =
  */
 export type GithubProjectItemNode = {
   id: string
+  databaseId: number | null
   type: 'ISSUE' | 'PULL_REQUEST' | 'DRAFT_ISSUE' | 'REDACTED'
   content:
     | ({ __typename: 'Issue' | 'PullRequest' } & GithubProjectIssueOrPRContent)

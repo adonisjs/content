@@ -21,6 +21,7 @@ import type { GithubProjectCard, GithubProjectOptions, LoaderContract } from '..
 export const ghProjectSchema = vine.array(
   vine.object({
     id: vine.string(),
+    databaseId: vine.number().nullable().optional(),
     type: vine.enum(['ISSUE', 'PULL_REQUEST', 'DRAFT_ISSUE'] as const),
     title: vine.string(),
     url: vine.string().nullable(),

@@ -421,6 +421,7 @@ export async function fetchProjectItems({
           items(first: 100, after: $cursor) {
             nodes {
               id
+              databaseId
               type
               content {
                 __typename
@@ -570,6 +571,7 @@ export async function fetchProjectItems({
 
       cards.push({
         id: item.id,
+        databaseId: item.databaseId ?? null,
         type: cardType,
         title: content.title,
         url: isIssueOrPR ? (content as GithubProjectIssueOrPRContent).url : null,
