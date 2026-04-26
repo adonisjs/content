@@ -98,13 +98,13 @@ const sponsors = new Collection({
 
 The `schemas` namespace exposes:
 
-| Key             | Validates                                                |
-| --------------- | -------------------------------------------------------- |
-| `ghSponsors`    | Array of sponsors fetched by the sponsors loader         |
-| `ghContributors`| Array of contributors fetched by the contributors loader |
-| `ghReleases`    | Array of releases fetched by the releases loader         |
-| `ghProject`     | Array of project cards fetched by the project loader     |
-| `ossStats`      | Aggregated OSS stats object (`stars`, `installs`)        |
+| Key              | Validates                                                |
+| ---------------- | -------------------------------------------------------- |
+| `ghSponsors`     | Array of sponsors fetched by the sponsors loader         |
+| `ghContributors` | Array of contributors fetched by the contributors loader |
+| `ghReleases`     | Array of releases fetched by the releases loader         |
+| `ghProject`      | Array of project cards fetched by the project loader     |
+| `ossStats`       | Aggregated OSS stats object (`stars`, `installs`)        |
 
 ### GitHub Sponsors Loader
 
@@ -134,14 +134,14 @@ const allSponsors = query.all()
 
 **Options**
 
-| Option            | Type                                | Description                                                                |
-| ----------------- | ----------------------------------- | -------------------------------------------------------------------------- |
-| `login`           | `string`                            | Username or organization name.                                             |
-| `isOrg`           | `boolean`                           | `true` if `login` is an organization, `false` for a user.                  |
-| `ghToken`         | `string`                            | GitHub personal access token.                                              |
-| `outputPath`      | `string`                            | File path where cached sponsors are stored.                                |
-| `refresh`         | `'daily' \| 'weekly' \| 'monthly'`  | Cache refresh interval.                                                    |
-| `includeInactive` | `boolean` *(optional)*              | Include cancelled sponsorships. Defaults to `false`.                       |
+| Option            | Type                               | Description                                               |
+| ----------------- | ---------------------------------- | --------------------------------------------------------- |
+| `login`           | `string`                           | Username or organization name.                            |
+| `isOrg`           | `boolean`                          | `true` if `login` is an organization, `false` for a user. |
+| `ghToken`         | `string`                           | GitHub personal access token.                             |
+| `outputPath`      | `string`                           | File path where cached sponsors are stored.               |
+| `refresh`         | `'daily' \| 'weekly' \| 'monthly'` | Cache refresh interval.                                   |
+| `includeInactive` | `boolean` _(optional)_             | Include cancelled sponsorships. Defaults to `false`.      |
 
 ### GitHub Releases Loader
 
@@ -174,14 +174,14 @@ const releases = new Collection({
 
 **Options**
 
-| Option                       | Type                                | Description                                                          |
-| ---------------------------- | ----------------------------------- | -------------------------------------------------------------------- |
-| `org`                        | `string`                            | Organization name.                                                   |
-| `ghToken`                    | `string`                            | GitHub personal access token.                                        |
-| `outputPath`                 | `string`                            | File path where cached releases are stored.                          |
-| `refresh`                    | `'daily' \| 'weekly' \| 'monthly'`  | Cache refresh interval.                                              |
-| `filters.nameIncludes`       | `string[]` *(optional)*             | Only include releases whose name contains one of these substrings.   |
-| `filters.nameDoesntInclude`  | `string[]` *(optional)*             | Exclude releases whose name contains one of these substrings.        |
+| Option                      | Type                               | Description                                                        |
+| --------------------------- | ---------------------------------- | ------------------------------------------------------------------ |
+| `org`                       | `string`                           | Organization name.                                                 |
+| `ghToken`                   | `string`                           | GitHub personal access token.                                      |
+| `outputPath`                | `string`                           | File path where cached releases are stored.                        |
+| `refresh`                   | `'daily' \| 'weekly' \| 'monthly'` | Cache refresh interval.                                            |
+| `filters.nameIncludes`      | `string[]` _(optional)_            | Only include releases whose name contains one of these substrings. |
+| `filters.nameDoesntInclude` | `string[]` _(optional)_            | Exclude releases whose name contains one of these substrings.      |
 
 The releases loader **merges** newly fetched releases with the cached ones (deduplicated by `url`), so historical releases are retained even after they fall out of GitHub's recent window.
 
@@ -212,12 +212,12 @@ const contributors = new Collection({
 
 **Options**
 
-| Option       | Type                                | Description                                  |
-| ------------ | ----------------------------------- | -------------------------------------------- |
-| `org`        | `string`                            | Organization name.                           |
-| `ghToken`    | `string`                            | GitHub personal access token.                |
-| `outputPath` | `string`                            | File path where cached contributors live.    |
-| `refresh`    | `'daily' \| 'weekly' \| 'monthly'`  | Cache refresh interval.                      |
+| Option       | Type                               | Description                               |
+| ------------ | ---------------------------------- | ----------------------------------------- |
+| `org`        | `string`                           | Organization name.                        |
+| `ghToken`    | `string`                           | GitHub personal access token.             |
+| `outputPath` | `string`                           | File path where cached contributors live. |
+| `refresh`    | `'daily' \| 'weekly' \| 'monthly'` | Cache refresh interval.                   |
 
 ### GitHub Project Loader
 
@@ -253,16 +253,16 @@ const board = new Collection({
 
 **Options**
 
-| Option          | Type                                  | Description                                                                                                |
-| --------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `login`         | `string`                              | Username or organization that owns the project.                                                            |
-| `isOrg`         | `boolean`                             | `true` if `login` is an organization, `false` for a user.                                                  |
-| `projectNumber` | `number`                              | Project number as it appears in the project URL.                                                           |
-| `ghToken`       | `string`                              | GitHub personal access token with `read:project` scope.                                                    |
-| `outputPath`    | `string`                              | File path where cached cards are stored.                                                                   |
-| `refresh`       | `'daily' \| 'weekly' \| 'monthly'`    | Cache refresh interval.                                                                                    |
-| `skipStatuses`  | `string[]` *(optional)*               | Skip cards whose Status field equals any value in this list (case-insensitive).                            |
-| `summary`       | `(description: string) => string` *(optional)* | Strategy for deriving `card.summary` from `card.description`. Defaults to the first paragraph of the markdown body. |
+| Option          | Type                                           | Description                                                                                                         |
+| --------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `login`         | `string`                                       | Username or organization that owns the project.                                                                     |
+| `isOrg`         | `boolean`                                      | `true` if `login` is an organization, `false` for a user.                                                           |
+| `projectNumber` | `number`                                       | Project number as it appears in the project URL.                                                                    |
+| `ghToken`       | `string`                                       | GitHub personal access token with `read:project` scope.                                                             |
+| `outputPath`    | `string`                                       | File path where cached cards are stored.                                                                            |
+| `refresh`       | `'daily' \| 'weekly' \| 'monthly'`             | Cache refresh interval.                                                                                             |
+| `skipStatuses`  | `string[]` _(optional)_                        | Skip cards whose Status field equals any value in this list (case-insensitive).                                     |
+| `summary`       | `(description: string) => string` _(optional)_ | Strategy for deriving `card.summary` from `card.description`. Defaults to the first paragraph of the markdown body. |
 
 Each card resolves to:
 
@@ -375,10 +375,10 @@ const posts = new Collection({
 })
 
 const query = await posts.load()
-query.all()                 // full dataset
-query.published()           // typed result of the view fn
+query.all() // full dataset
+query.published() // typed result of the view fn
 query.findBySlug('my-post')
-query.byYear()              // Map<number, Post[]>
+query.byYear() // Map<number, Post[]>
 ```
 
 ### Multi-section Collections
@@ -386,12 +386,14 @@ query.byYear()              // Map<number, Post[]>
 Use `Collection.multi` to spin up a collection per section and load them together:
 
 ```ts
-const docs = Collection.multi(['guides', 'api', 'tutorials'] as const, (section) =>
-  new Collection({
-    schema: vine.array(docSchema),
-    loader: loaders.jsonLoader(app.makePath(`data/${section}.json`)),
-    cache: true,
-  })
+const docs = Collection.multi(
+  ['guides', 'api', 'tutorials'] as const,
+  (section) =>
+    new Collection({
+      schema: vine.array(docSchema),
+      loader: loaders.jsonLoader(app.makePath(`data/${section}.json`)),
+      cache: true,
+    })
 )
 
 // Each section is accessible as a Collection instance
@@ -421,7 +423,7 @@ Cached data is stored as JSON with a `lastFetched` timestamp and the loader's pa
 }
 ```
 
-`Collection`'s own `cache: true` flag is independent — it caches the *validated, view-bound* result in memory for the lifetime of the process so subsequent `load()` calls are free.
+`Collection`'s own `cache: true` flag is independent — it caches the _validated, view-bound_ result in memory for the lifetime of the process so subsequent `load()` calls are free.
 
 You can also reuse the disk-cache helper for your own data:
 
