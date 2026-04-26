@@ -7,32 +7,21 @@
  * file that was distributed with this source code.
  */
 
-import vine from '@vinejs/vine'
 import { join } from 'node:path'
 import { test } from '@japa/runner'
 import { env } from '../helpers.ts'
-import { GithubReleasesLoader } from '../../src/loaders/gh_releases.ts'
+import { GithubReleasesLoader, ghReleasesSchema } from '../../src/loaders/gh_releases.ts'
 
 test.group('Github releases loader', () => {
   test('fetch github releases and write them to a file', async ({ assert, fs }) => {
-    const releasesSchema = vine.array(
-      vine.object({
-        repo: vine.string(),
-        name: vine.string(),
-        tagName: vine.string(),
-        publishedAt: vine.string(),
-        url: vine.string(),
-      })
-    )
-
-    const ghReleaseLoader = new GithubReleasesLoader<typeof releasesSchema>({
+    const ghReleaseLoader = new GithubReleasesLoader<typeof ghReleasesSchema>({
       ghToken: env.get('GH_TOKEN'),
       org: 'vinejs',
       outputPath: join(fs.basePath, 'releases.json'),
       refresh: 'weekly',
     })
 
-    const releases = await ghReleaseLoader.load(releasesSchema)
+    const releases = await ghReleaseLoader.load(ghReleasesSchema)
     assert.isArray(releases)
     assert.exists(releases[0].url)
   }).disableTimeout()

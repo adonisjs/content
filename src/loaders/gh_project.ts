@@ -14,6 +14,37 @@ import { createCache, fetchProjectItems } from '../utils.ts'
 import type { GithubProjectCard, GithubProjectOptions, LoaderContract } from '../types.ts'
 
 /**
+ * Default VineJS schema for the data returned by {@link GithubProjectLoader}.
+ * Matches the {@link GithubProjectCard} shape and is safe to plug into a
+ * Collection without writing a schema by hand.
+ */
+export const ghProjectSchema = vine.array(
+  vine.object({
+    id: vine.string(),
+    type: vine.enum(['ISSUE', 'PULL_REQUEST', 'DRAFT_ISSUE'] as const),
+    title: vine.string(),
+    url: vine.string().nullable(),
+    number: vine.number().nullable(),
+    state: vine.string().nullable(),
+    status: vine.string().nullable(),
+    priority: vine.string().nullable(),
+    effort: vine.number().nullable(),
+    labels: vine.array(vine.string()),
+    assignees: vine.array(
+      vine.object({
+        login: vine.string(),
+        name: vine.string().nullable(),
+        avatarUrl: vine.string().nullable(),
+        url: vine.string().nullable(),
+      })
+    ),
+    description: vine.string().nullable(),
+    summary: vine.string().nullable(),
+    customFields: vine.record(vine.any()),
+  })
+)
+
+/**
  * A loader that fetches cards from a GitHub Projects v2 (kanban) board. Resolves
  * each card's title, status, assignees, priority, effort, labels, body, and any
  * custom project fields. Supports caching, scheduled refresh, and skipping cards

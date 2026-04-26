@@ -14,6 +14,27 @@ import { createCache, fetchAllSponsors } from '../utils.ts'
 import type { GithubSponsor, GithubSponsorsOptions, LoaderContract } from '../types.ts'
 
 /**
+ * Default VineJS schema for the data returned by {@link GithubSponsorsLoader}.
+ * Matches the {@link GithubSponsor} shape and is safe to plug into a Collection
+ * without writing a schema by hand.
+ */
+export const ghSponsorsSchema = vine.array(
+  vine.object({
+    id: vine.string(),
+    isActive: vine.boolean(),
+    createdAt: vine.string(),
+    privacyLevel: vine.string().nullable(),
+    tierName: vine.string().nullable(),
+    tierMonthlyPriceInCents: vine.number().nullable(),
+    sponsorType: vine.string(),
+    sponsorLogin: vine.string(),
+    sponsorName: vine.string().nullable().optional(),
+    sponsorAvatarUrl: vine.string().nullable().optional(),
+    sponsorUrl: vine.string().nullable().optional(),
+  })
+)
+
+/**
  * A loader that fetches GitHub sponsors for a user or organization.
  * Supports caching and automatic refresh based on a schedule.
  *

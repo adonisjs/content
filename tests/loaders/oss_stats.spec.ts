@@ -7,19 +7,13 @@
  * file that was distributed with this source code.
  */
 
-import vine from '@vinejs/vine'
 import { join } from 'node:path'
 import { test } from '@japa/runner'
 import { env } from '../helpers.ts'
-import { OssStatsLoader } from '../../src/loaders/oss_stats.ts'
+import { OssStatsLoader, ossStatsSchema } from '../../src/loaders/oss_stats.ts'
 
 test.group('OSS stats loader', () => {
   test('fetch and aggregate OSS stats from GitHub and npm sources', async ({ assert, fs }) => {
-    const ossStatsSchema = vine.object({
-      stars: vine.number(),
-      installs: vine.number(),
-    })
-
     const ossStatsLoader = new OssStatsLoader<typeof ossStatsSchema>({
       outputPath: join(fs.basePath, 'oss-stats.json'),
       refresh: 'weekly',

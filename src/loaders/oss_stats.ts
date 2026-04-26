@@ -14,6 +14,17 @@ import { createCache, aggregateStars, aggregateInstalls } from '../utils.ts'
 import type { OssStatsOptions, LoaderContract, OssStats } from '../types.ts'
 
 /**
+ * Default VineJS schema for the data returned by {@link OssStatsLoader}.
+ * Validates the well-known `stars` and `installs` aggregates. If you use custom
+ * function sources that contribute additional keys, define your own schema or
+ * extend this one to validate them.
+ */
+export const ossStatsSchema = vine.object({
+  stars: vine.number(),
+  installs: vine.number(),
+})
+
+/**
  * A loader that aggregates open source statistics from multiple sources.
  * Supports GitHub organization stars and npm package download counts.
  * Provides caching and automatic refresh based on a schedule.

@@ -14,6 +14,21 @@ import { createCache, fetchContributorsForOrg } from '../utils.ts'
 import type { GithubContributorNode, GithubContributorsOptions, LoaderContract } from '../types.ts'
 
 /**
+ * Default VineJS schema for the data returned by {@link GithubContributorsLoader}.
+ * Matches the {@link GithubContributorNode} shape and is safe to plug into a
+ * Collection without writing a schema by hand.
+ */
+export const ghContributorsSchema = vine.array(
+  vine.object({
+    login: vine.string(),
+    id: vine.number().optional(),
+    avatar_url: vine.string().nullable().optional(),
+    html_url: vine.string().nullable().optional(),
+    contributions: vine.number(),
+  })
+)
+
+/**
  * A loader that fetches GitHub contributors from all repositories in an organization.
  * Supports caching and automatic refresh based on a schedule.
  *

@@ -15,11 +15,11 @@ import {
   type OssStatsOptions,
 } from '../types.ts'
 import { JsonLoader } from './json.ts'
-import { OssStatsLoader } from './oss_stats.ts'
-import { GithubSponsorsLoader } from './gh_sponsors.ts'
-import { GithubReleasesLoader } from './gh_releases.ts'
-import { GithubProjectLoader } from './gh_project.ts'
-import { GithubContributorsLoader } from './gh_contributors.ts'
+import { OssStatsLoader, ossStatsSchema } from './oss_stats.ts'
+import { GithubSponsorsLoader, ghSponsorsSchema } from './gh_sponsors.ts'
+import { GithubReleasesLoader, ghReleasesSchema } from './gh_releases.ts'
+import { GithubProjectLoader, ghProjectSchema } from './gh_project.ts'
+import { GithubContributorsLoader, ghContributorsSchema } from './gh_contributors.ts'
 
 /**
  * Factory functions for creating content loaders.
@@ -167,4 +167,29 @@ export const loaders = {
   jsonLoader(source: string) {
     return new JsonLoader(source)
   },
+}
+
+/**
+ * Default VineJS schemas for each built-in loader. Use these with `Collection`
+ * when the loader's default shape is enough and you don't need to write a
+ * schema by hand.
+ *
+ * @example
+ * ```ts
+ * import { Collection } from '@adonisjs/content'
+ * import { loaders, schemas } from '@adonisjs/content/loaders'
+ *
+ * const collection = new Collection({
+ *   schema: schemas.ghSponsors,
+ *   loader: loaders.ghSponsors({ ... }),
+ *   cache: true,
+ * })
+ * ```
+ */
+export const schemas = {
+  ghSponsors: ghSponsorsSchema,
+  ghContributors: ghContributorsSchema,
+  ghReleases: ghReleasesSchema,
+  ghProject: ghProjectSchema,
+  ossStats: ossStatsSchema,
 }

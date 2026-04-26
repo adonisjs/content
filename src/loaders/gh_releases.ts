@@ -14,6 +14,22 @@ import { createCache, mergeArrays, fetchReleases } from '../utils.ts'
 import type { GithubReleasesOptions, GithubReleaseWithRepo, LoaderContract } from '../types.ts'
 
 /**
+ * Default VineJS schema for the data returned by {@link GithubReleasesLoader}.
+ * Matches the {@link GithubReleaseWithRepo} shape and is safe to plug into a
+ * Collection without writing a schema by hand.
+ */
+export const ghReleasesSchema = vine.array(
+  vine.object({
+    repo: vine.string(),
+    name: vine.string(),
+    tagName: vine.string(),
+    publishedAt: vine.string(),
+    url: vine.string(),
+    description: vine.string().nullable(),
+  })
+)
+
+/**
  * A loader that fetches GitHub releases from an organization's repositories.
  * Supports caching, automatic refresh based on a schedule, and merging with existing data.
  *
