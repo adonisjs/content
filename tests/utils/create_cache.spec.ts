@@ -7,6 +7,7 @@
  * file that was distributed with this source code.
  */
 
+import dayjs from 'dayjs'
 import { join } from 'node:path'
 import { test } from '@japa/runner'
 import { createCache } from '../../src/utils.ts'
@@ -141,12 +142,14 @@ test.group('createCache', () => {
       refresh: 'weekly',
     })
 
-    // Create a cache file with a date from 1 days ago (within the week)
-    const threeDaysAgo = new Date()
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 1)
+    // Pick a date guaranteed to fall within the current week,
+    // so the test does not flake when `now` sits near a week boundary.
+    const oneDayAgo = dayjs().subtract(1, 'day')
+    const startOfWeek = dayjs().startOf('week')
+    const withinWeek = (oneDayAgo.isBefore(startOfWeek) ? startOfWeek : oneDayAgo).toDate()
 
     const cacheContents = {
-      lastFetched: threeDaysAgo.toISOString(),
+      lastFetched: withinWeek.toISOString(),
       testData: ['fresh', 'data'],
     }
 
