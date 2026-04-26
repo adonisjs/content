@@ -372,3 +372,207 @@ export type GithubContributorNode = {
   /** Number of contributions made to the repository */
   contributions: number
 }
+
+/**
+ * Represents a person assigned to a GitHub Projects v2 card.
+ */
+export type GithubProjectAssignee = {
+  /** GitHub username */
+  login: string
+  /** Display name */
+  name: string | null
+  /** Avatar URL */
+  avatarUrl: string | null
+  /** Profile URL */
+  url: string | null
+}
+
+/**
+ * Represents a single card from a GitHub Projects v2 board. The card may be backed
+ * by an Issue, Pull Request, or Draft Issue. Well-known fields are extracted directly,
+ * while any extra single-select / number / text / date / iteration field is exposed
+ * via `customFields`.
+ *
+ * @example
+ * ```ts
+ * const card: GithubProjectCard = {
+ *   id: 'PVTI_lADO...',
+ *   type: 'ISSUE',
+ *   title: 'Add OAuth provider',
+ *   url: 'https://github.com/adonisjs/core/issues/123',
+ *   number: 123,
+ *   state: 'OPEN',
+ *   status: 'In Progress',
+ *   priority: 'P1',
+ *   effort: 3,
+ *   labels: ['enhancement'],
+ *   assignees: [{ login: 'thetutlage', name: 'Harminder', avatarUrl: '...', url: '...' }],
+ *   description: '## Goal\n\nWe want to ...',
+ *   summary: 'We want to ...',
+ *   customFields: { 'Target release': '1.6.0' }
+ * }
+ * ```
+ */
+export type GithubProjectCard = {
+  /** Project item node ID */
+  id: string
+  /** Underlying content type for the card */
+  type: 'ISSUE' | 'PULL_REQUEST' | 'DRAFT_ISSUE'
+  /** Card title */
+  title: string
+  /** URL to the underlying issue or PR (null for draft issues) */
+  url: string | null
+  /** Issue or PR number (null for draft issues) */
+  number: number | null
+  /** Underlying issue/PR state, e.g. OPEN, CLOSED, MERGED */
+  state: string | null
+  /** Value of the board's Status column, e.g. "Backlog", "In Progress" */
+  status: string | null
+  /** Value of a single-select field named "Priority" (case-insensitive) */
+  priority: string | null
+  /** Value of a number field named "Effort" or "Estimate" (case-insensitive) */
+  effort: number | null
+  /** Labels attached to the underlying issue or PR */
+  labels: string[]
+  /** People assigned to the card */
+  assignees: GithubProjectAssignee[]
+  /** Full markdown body of the underlying content */
+  description: string | null
+  /** Short summary derived from `description` */
+  summary: string | null
+  /** Any project field not covered by the well-known fields above */
+  customFields: Record<string, string | number | null>
+}
+
+/**
+ * Configuration options for loading a GitHub Projects v2 (kanban) board.
+ *
+ * @example
+ * ```ts
+ * const options: GithubProjectOptions = {
+ *   login: 'adonisjs',
+ *   isOrg: true,
+ *   projectNumber: 5,
+ *   ghToken: process.env.GITHUB_TOKEN,
+ *   outputPath: './cache/board.json',
+ *   refresh: 'daily',
+ *   skipStatuses: ['Backlog', 'Done'],
+ *   summary: (description) => description.split('\n')[0]
+ * }
+ * ```
+ */
+/**
+ * GraphQL response shape for an assignee node returned by the Projects v2 API.
+ */
+export type GithubProjectAssigneeNode = {
+  login: string
+  name?: string | null
+  avatarUrl?: string | null
+  url?: string | null
+}
+
+/**
+ * GraphQL response shape shared by Issue, PullRequest, and DraftIssue content
+ * referenced from a Projects v2 item.
+ */
+export type GithubProjectContentBase = {
+  title: string
+  body: string | null
+  assignees: { nodes: GithubProjectAssigneeNode[] }
+}
+
+/**
+ * GraphQL response shape for Issue or PullRequest content on a Projects v2 item.
+ */
+export type GithubProjectIssueOrPRContent = GithubProjectContentBase & {
+  url: string
+  number: number
+  state: string
+  labels: { nodes: { name: string }[] }
+}
+
+/**
+ * GraphQL response shape for DraftIssue content on a Projects v2 item.
+ */
+export type GithubProjectDraftIssueContent = GithubProjectContentBase
+
+/**
+ * GraphQL response shape for a single field value attached to a Projects v2 item.
+ * Discriminated by `__typename`; a fallback variant covers field types we do not
+ * explicitly handle.
+ */
+export type GithubProjectFieldValueNode =
+  | {
+      __typename: 'ProjectV2ItemFieldSingleSelectValue'
+      name: string | null
+      field: { name: string }
+    }
+  | {
+      __typename: 'ProjectV2ItemFieldNumberValue'
+      number: number | null
+      field: { name: string }
+    }
+  | { __typename: 'ProjectV2ItemFieldTextValue'; text: string | null; field: { name: string } }
+  | { __typename: 'ProjectV2ItemFieldDateValue'; date: string | null; field: { name: string } }
+  | {
+      __typename: 'ProjectV2ItemFieldIterationValue'
+      title: string | null
+      field: { name: string }
+    }
+  | { __typename: string }
+
+/**
+ * GraphQL response shape for a single Projects v2 item, including its content
+ * and field values.
+ */
+export type GithubProjectItemNode = {
+  id: string
+  type: 'ISSUE' | 'PULL_REQUEST' | 'DRAFT_ISSUE' | 'REDACTED'
+  content:
+    | ({ __typename: 'Issue' | 'PullRequest' } & GithubProjectIssueOrPRContent)
+    | ({ __typename: 'DraftIssue' } & GithubProjectDraftIssueContent)
+    | null
+  fieldValues: { nodes: GithubProjectFieldValueNode[] }
+}
+
+/**
+ * GraphQL response shape for a paginated `items` connection on a Projects v2.
+ */
+export type GithubProjectItemsConnection = {
+  nodes: GithubProjectItemNode[]
+  pageInfo: { hasNextPage: boolean; endCursor: string | null }
+}
+
+/**
+ * GraphQL response shape for the top-level Projects v2 query, covering both the
+ * organization and user roots.
+ */
+export type GithubProjectQueryResponse = {
+  organization?: { projectV2: { items: GithubProjectItemsConnection } | null }
+  user?: { projectV2: { items: GithubProjectItemsConnection } | null }
+}
+
+export type GithubProjectOptions = {
+  /** GitHub username or organization that owns the project */
+  login: string
+  /** Whether `login` refers to an organization (true) or a user (false) */
+  isOrg: boolean
+  /** Project number as it appears in the project URL */
+  projectNumber: number
+  /** GitHub personal access token with `read:project` scope */
+  ghToken: string
+  /** Path where cached cards will be stored */
+  outputPath: string
+  /** How often to refresh the cached data */
+  refresh: 'daily' | 'weekly' | 'monthly'
+  /**
+   * Status column values to skip. Cards whose Status field matches any value
+   * in this list (case-insensitive) are excluded from the result.
+   */
+  skipStatuses?: string[]
+  /**
+   * Strategy for deriving `card.summary` from `card.description`.
+   * Defaults to the first paragraph of the markdown body.
+   */
+  summary?: (description: string) => string
+}

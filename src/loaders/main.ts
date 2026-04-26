@@ -11,12 +11,14 @@ import {
   type GithubSponsorsOptions,
   type GithubReleasesOptions,
   type GithubContributorsOptions,
+  type GithubProjectOptions,
   type OssStatsOptions,
 } from '../types.ts'
 import { JsonLoader } from './json.ts'
 import { OssStatsLoader } from './oss_stats.ts'
 import { GithubSponsorsLoader } from './gh_sponsors.ts'
 import { GithubReleasesLoader } from './gh_releases.ts'
+import { GithubProjectLoader } from './gh_project.ts'
 import { GithubContributorsLoader } from './gh_contributors.ts'
 
 /**
@@ -98,6 +100,28 @@ export const loaders = {
    */
   ghReleases(options: GithubReleasesOptions) {
     return new GithubReleasesLoader(options)
+  },
+
+  /**
+   * Creates a GitHub Projects v2 (kanban) loader instance.
+   *
+   * @param options - Configuration options for the project loader
+   *
+   * @example
+   * ```ts
+   * const loader = loaders.ghProject({
+   *   login: 'adonisjs',
+   *   isOrg: true,
+   *   projectNumber: 5,
+   *   ghToken: process.env.GITHUB_TOKEN,
+   *   outputPath: './cache/board.json',
+   *   refresh: 'daily',
+   *   skipStatuses: ['Backlog', 'Done']
+   * })
+   * ```
+   */
+  ghProject(options: GithubProjectOptions) {
+    return new GithubProjectLoader(options)
   },
 
   /**

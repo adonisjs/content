@@ -7,8 +7,11 @@
  * file that was distributed with this source code.
  */
 
+import dayjs from 'dayjs'
+import { dirname } from 'node:path'
 import { Octokit } from '@octokit/rest'
 import { graphql } from '@octokit/graphql'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import {
   type GithubSponsor,
   type GithubRelease,
@@ -17,11 +20,13 @@ import {
   type GithubSponsorsOptions,
   type GithubContributorNode,
   type GithubContributorsOptions,
+  type GithubProjectCard,
+  type GithubProjectOptions,
+  type GithubProjectAssignee,
+  type GithubProjectIssueOrPRContent,
+  type GithubProjectQueryResponse,
 } from './types.ts'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import debug from './debug.ts'
-import dayjs from 'dayjs'
-import { dirname } from 'node:path'
 
 /**
  * Fetches all sponsors for a GitHub user or organization using GraphQL API.
@@ -350,6 +355,247 @@ export async function fetchContributorsForOrg({
 }
 
 /**
+ * Extracts the first paragraph from a markdown body. Skips leading headings,
+ * blockquotes, HTML comments, and front-matter so the summary reads as prose.
+ *
+ * @param description - Markdown body
+ *
+ * @example
+ * ```ts
+ * extractFirstParagraph('# Title\n\nWe ship today.\n\nMore details...')
+ * // => 'We ship today.'
+ * ```
+ */
+export function extractFirstParagraph(description: string): string {
+  let body = description.replace(/^---\n[\s\S]*?\n---\n?/, '')
+  const blocks = body.split(/\n\s*\n/)
+
+  for (const block of blocks) {
+    const trimmed = block.trim()
+    if (!trimmed) continue
+    if (trimmed.startsWith('#')) continue
+    if (trimmed.startsWith('>')) continue
+    if (trimmed.startsWith('<!--')) continue
+    return trimmed.replace(/\s+/g, ' ').trim()
+  }
+
+  return ''
+}
+
+/**
+ * Fetches all items from a GitHub Projects v2 (kanban) board. Resolves the
+ * project's Status / Priority / Effort columns alongside any custom fields,
+ * applies status-based filtering, and derives a summary from each card's body.
+ *
+ * @param options - Configuration options for fetching project cards
+ *
+ * @example
+ * ```ts
+ * const cards = await fetchProjectItems({
+ *   login: 'adonisjs',
+ *   isOrg: true,
+ *   projectNumber: 5,
+ *   ghToken: process.env.GITHUB_TOKEN,
+ *   outputPath: './cache/board.json',
+ *   refresh: 'daily',
+ *   skipStatuses: ['Backlog', 'Done']
+ * })
+ * ```
+ */
+export async function fetchProjectItems({
+  login,
+  isOrg,
+  projectNumber,
+  ghToken,
+  skipStatuses,
+  summary,
+}: GithubProjectOptions): Promise<GithubProjectCard[]> {
+  const skipSet = new Set((skipStatuses ?? []).map((s) => s.toLowerCase()))
+  const summarize = summary ?? extractFirstParagraph
+
+  const root = isOrg ? 'organization' : 'user'
+  const query = `
+    query($login: String!, $number: Int!, $cursor: String) {
+      ${root}(login: $login) {
+        projectV2(number: $number) {
+          items(first: 100, after: $cursor) {
+            nodes {
+              id
+              type
+              content {
+                __typename
+                ... on Issue {
+                  title
+                  body
+                  url
+                  number
+                  state
+                  assignees(first: 20) { nodes { login name avatarUrl url } }
+                  labels(first: 30) { nodes { name } }
+                }
+                ... on PullRequest {
+                  title
+                  body
+                  url
+                  number
+                  state
+                  assignees(first: 20) { nodes { login name avatarUrl url } }
+                  labels(first: 30) { nodes { name } }
+                }
+                ... on DraftIssue {
+                  title
+                  body
+                  assignees(first: 20) { nodes { login name avatarUrl url } }
+                }
+              }
+              fieldValues(first: 30) {
+                nodes {
+                  __typename
+                  ... on ProjectV2ItemFieldSingleSelectValue {
+                    name
+                    field { ... on ProjectV2SingleSelectField { name } }
+                  }
+                  ... on ProjectV2ItemFieldNumberValue {
+                    number
+                    field { ... on ProjectV2Field { name } }
+                  }
+                  ... on ProjectV2ItemFieldTextValue {
+                    text
+                    field { ... on ProjectV2Field { name } }
+                  }
+                  ... on ProjectV2ItemFieldDateValue {
+                    date
+                    field { ... on ProjectV2Field { name } }
+                  }
+                  ... on ProjectV2ItemFieldIterationValue {
+                    title
+                    field { ... on ProjectV2IterationField { name } }
+                  }
+                }
+              }
+            }
+            pageInfo { hasNextPage endCursor }
+          }
+        }
+      }
+    }
+  `
+
+  const cards: GithubProjectCard[] = []
+  let cursor: string | null = null
+  let hasNext = true
+
+  while (hasNext) {
+    const data: GithubProjectQueryResponse = await graphql(query, {
+      headers: { authorization: `token ${ghToken}` },
+      login,
+      number: projectNumber,
+      cursor,
+    })
+
+    const project = (isOrg ? data.organization : data.user)?.projectV2
+    if (!project) {
+      break
+    }
+
+    for (const item of project.items.nodes) {
+      if (!item.content) {
+        continue
+      }
+
+      let status: string | null = null
+      let priority: string | null = null
+      let effort: number | null = null
+      const customFields: Record<string, string | number | null> = {}
+
+      for (const fv of item.fieldValues.nodes) {
+        const fieldName = (fv as any).field?.name as string | undefined
+        if (!fieldName) {
+          continue
+        }
+
+        let value: string | number | null = null
+        switch (fv.__typename) {
+          case 'ProjectV2ItemFieldSingleSelectValue':
+            value = (fv as any).name ?? null
+            break
+          case 'ProjectV2ItemFieldNumberValue':
+            value = (fv as any).number ?? null
+            break
+          case 'ProjectV2ItemFieldTextValue':
+            value = (fv as any).text ?? null
+            break
+          case 'ProjectV2ItemFieldDateValue':
+            value = (fv as any).date ?? null
+            break
+          case 'ProjectV2ItemFieldIterationValue':
+            value = (fv as any).title ?? null
+            break
+          default:
+            continue
+        }
+
+        const lower = fieldName.toLowerCase()
+        if (lower === 'status') {
+          status = typeof value === 'string' ? value : null
+        } else if (lower === 'priority') {
+          priority = typeof value === 'string' ? value : null
+        } else if (lower === 'effort' || lower === 'estimate') {
+          effort = typeof value === 'number' ? value : null
+        } else {
+          customFields[fieldName] = value
+        }
+      }
+
+      if (status && skipSet.has(status.toLowerCase())) {
+        continue
+      }
+
+      const content = item.content
+      const isIssueOrPR = content.__typename === 'Issue' || content.__typename === 'PullRequest'
+      const cardType: GithubProjectCard['type'] =
+        item.type === 'PULL_REQUEST'
+          ? 'PULL_REQUEST'
+          : item.type === 'DRAFT_ISSUE'
+            ? 'DRAFT_ISSUE'
+            : 'ISSUE'
+
+      const description = content.body ?? null
+      const assignees: GithubProjectAssignee[] = (content.assignees?.nodes ?? []).map((a) => ({
+        login: a.login,
+        name: a.name ?? null,
+        avatarUrl: a.avatarUrl ?? null,
+        url: a.url ?? null,
+      }))
+
+      cards.push({
+        id: item.id,
+        type: cardType,
+        title: content.title,
+        url: isIssueOrPR ? (content as GithubProjectIssueOrPRContent).url : null,
+        number: isIssueOrPR ? (content as GithubProjectIssueOrPRContent).number : null,
+        state: isIssueOrPR ? (content as GithubProjectIssueOrPRContent).state : null,
+        status,
+        priority,
+        effort,
+        labels: isIssueOrPR
+          ? (content as GithubProjectIssueOrPRContent).labels.nodes.map((l) => l.name)
+          : [],
+        assignees,
+        description,
+        summary: description ? summarize(description) : null,
+        customFields,
+      })
+    }
+
+    hasNext = project.items.pageInfo.hasNextPage
+    cursor = project.items.pageInfo.endCursor
+  }
+
+  return cards
+}
+
+/**
  * Merges two arrays by removing duplicates based on a specified key.
  * Items from the existing array are preserved, and only new unique items
  * from the fresh array are added.
@@ -528,7 +774,7 @@ export function createCache<T>({
           return null
         }
         return cachedContents[key]
-      } catch (error) {
+      } catch (error: any) {
         if (error.code !== 'ENOENT') {
           throw error
         }
