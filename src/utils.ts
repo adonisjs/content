@@ -797,11 +797,11 @@ export function createCache<T>({
   function isExpired(fetchDate: Date) {
     switch (refresh) {
       case 'daily':
-        return dayjs().isAfter(fetchDate, 'day')
+        return dayjs().isAfter(dayjs(fetchDate).add(1, 'day'))
       case 'weekly':
-        return dayjs().isAfter(fetchDate, 'week')
+        return dayjs().isAfter(dayjs(fetchDate).add(1, 'week'))
       case 'monthly':
-        return dayjs().isAfter(fetchDate, 'month')
+        return dayjs().isAfter(dayjs(fetchDate).add(1, 'month'))
     }
   }
 
