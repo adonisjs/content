@@ -230,7 +230,7 @@ export async function fetchReleases({
       }
     `
 
-    const data: {
+    let data: {
       organization: {
         repositories: {
           nodes: {
@@ -249,12 +249,28 @@ export async function fetchReleases({
           }
         }
       }
-    } = await graphql(query, {
-      headers: {
-        authorization: `token ${ghToken}`,
-      },
-      cursor: orgCursor,
-    })
+    }
+    try {
+      data = await graphql(query, {
+        headers: {
+          authorization: `token ${ghToken}`,
+        },
+        cursor: orgCursor,
+      })
+    } catch (err: any) {
+      const status = err?.status ?? err?.response?.status
+      const bodyText =
+        typeof err?.response?.data === 'string'
+          ? err.response.data
+          : err?.response?.data
+            ? JSON.stringify(err.response.data)
+            : ''
+      const snippet = bodyText.slice(0, 200)
+      throw new Error(
+        `GitHub GraphQL request for releases failed (org: "${org}"): ${status ?? 'unknown status'} - ${err?.message ?? 'no message'}. Body: ${snippet}`,
+        { cause: err }
+      )
+    }
 
     for (const repo of data.organization.repositories.nodes) {
       const filtered = repo.releases.nodes
@@ -643,15 +659,49 @@ export function mergeArrays<T, K extends keyof T>(existing: T[], fresh: T[], key
  * console.log(`Total downloads: ${total}`)
  * ```
  */
+async function fetchNpmDownloadsWithRetry(
+  url: string,
+  pkgName: string,
+  maxRetries = 5
+): Promise<{ downloads: number }> {
+  let attempt = 0
+  while (true) {
+    const res = await fetch(url)
+    const contentType = res.headers.get('content-type') || ''
+    if (res.ok && contentType.includes('application/json')) {
+      return (await res.json()) as { downloads: number }
+    }
+
+    const isRetryable = res.status === 429 || res.status >= 500
+    if (isRetryable && attempt < maxRetries) {
+      const retryAfterHeader = res.headers.get('retry-after')
+      const retryAfterMs =
+        retryAfterHeader && !Number.isNaN(Number(retryAfterHeader))
+          ? Number(retryAfterHeader) * 1000
+          : null
+      const backoffMs =
+        retryAfterMs ?? Math.min(30000, 1000 * 2 ** attempt) + Math.floor(Math.random() * 500)
+      await res.body?.cancel().catch(() => {})
+      await new Promise((resolve) => setTimeout(resolve, backoffMs))
+      attempt++
+      continue
+    }
+
+    const bodyText = await res.text().catch(() => '')
+    const snippet = bodyText.slice(0, 200)
+    throw new Error(
+      `npm downloads API request failed for "${pkgName}" (GET ${url}) after ${attempt} retries: ${res.status} ${res.statusText}. Content-Type: "${contentType}". Body: ${snippet}`
+    )
+  }
+}
+
 export async function aggregateInstalls(packages: { name: string; startDate: string }[]) {
   let total = 0
   for (let pkg of packages) {
     const startDate = pkg.startDate
     const endDate = new Date().toISOString().split('T')[0]
-    const res = await fetch(
-      `https://api.npmjs.org/downloads/point/${startDate}:${endDate}/${pkg.name}`
-    )
-    const data = (await res.json()) as { downloads: number }
+    const url = `https://api.npmjs.org/downloads/point/${startDate}:${endDate}/${pkg.name}`
+    const data = await fetchNpmDownloadsWithRetry(url, pkg.name)
     total += data.downloads
   }
   return total
