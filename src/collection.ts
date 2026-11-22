@@ -51,6 +51,8 @@ export class Collection<
   /** Cached validated data */
   #data?: Infer<Schema>
   #views?: ViewsToQueryMethods<Views>
+  /** The load in progress, shared by concurrent callers */
+  #pendingLoad?: Promise<{ data: Infer<Schema>; views: ViewsToQueryMethods<Views> }>
 
   /**
    * Creates a new Collection instance.
@@ -180,13 +182,14 @@ export class Collection<
   /**
    * Loads and validates data using the configured loader and schema.
    * Returns cached data if caching is enabled and data was previously loaded.
+   * Concurrent calls share the load in progress, so the loader runs once.
    *
    * @example
    * ```ts
    * const data = await posts.hydrate()
    * ```
    */
-  async hydrate() {
+  async hydrate(): Promise<{ data: Infer<Schema>; views: ViewsToQueryMethods<Views> }> {
     if (this.#data && this.#views && this.#options.cache) {
       debug('re-using data and views from cache')
       return {
@@ -195,12 +198,28 @@ export class Collection<
       }
     }
 
+    if (this.#pendingLoad) {
+      debug('waiting for the load in progress')
+      return this.#pendingLoad
+    }
+
+    this.#pendingLoad = this.#computeData().finally(() => {
+      this.#pendingLoad = undefined
+    })
+    return this.#pendingLoad
+  }
+
+  /**
+   * Runs the loader, and computes the views from its data
+   */
+  async #computeData(): Promise<{ data: Infer<Schema>; views: ViewsToQueryMethods<Views> }> {
     debug('computing data')
-    this.#data = await this.#options.loader.load(this.#options.schema, {
+    const data = await this.#options.loader.load(this.#options.schema, {
       vite: Collection.#vite,
       app: Collection.#app,
       ...this.#options.validatorMetaData,
     })
+    this.#data = data
 
     const views = this.#options.views ?? ({} as Views)
     this.#views = Object.keys(views).reduce<ViewsToQueryMethods<Views>>((result, view) => {
@@ -209,7 +228,7 @@ export class Collection<
     }, {} as ViewsToQueryMethods<Views>)
 
     return {
-      data: this.#data,
+      data,
       views: this.#views,
     }
   }
