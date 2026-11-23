@@ -168,6 +168,49 @@ test.group('Collection | types', () => {
     assert.deepEqual(query1.list(), [{ permalink: '/foo' }])
   })
 
+  test('run the loader once for concurrent loads', async ({ assert }) => {
+    let calls = 0
+    const collection = new Collection({
+      cache: true,
+      schema: vine.array(vine.object({ permalink: vine.string() })),
+      loader: {
+        async load(schema) {
+          calls++
+          await new Promise((resolve) => setTimeout(resolve, 10))
+          return vine.validate({ schema, data: [{ permalink: '/foo' }] })
+        },
+      },
+    })
+
+    const queries = await Promise.all([collection.load(), collection.load(), collection.load()])
+    assert.equal(calls, 1)
+    for (const query of queries) {
+      assert.deepEqual(query.all(), [{ permalink: '/foo' }])
+    }
+  })
+
+  test('run the loader again after a failed load', async ({ assert }) => {
+    let calls = 0
+    const collection = new Collection({
+      cache: true,
+      schema: vine.array(vine.object({ permalink: vine.string() })),
+      loader: {
+        async load(schema) {
+          calls++
+          if (calls === 1) {
+            throw new Error('Source unavailable')
+          }
+          return vine.validate({ schema, data: [{ permalink: '/foo' }] })
+        },
+      },
+    })
+
+    await assert.rejects(() => collection.load(), 'Source unavailable')
+    const query = await collection.load()
+    assert.equal(calls, 2)
+    assert.deepEqual(query.all(), [{ permalink: '/foo' }])
+  })
+
   test('define multiple collection', async ({ assert, expectTypeOf }) => {
     const docsSchema = vine.array(
       vine.object({
