@@ -75,10 +75,9 @@ test.group('createCache', () => {
       refresh: 'daily',
     })
 
-    // Create a cache file with a date from yesterday
-    const yesterday = new Date()
-    yesterday.setDate(yesterday.getDate() - 1)
-    yesterday.setHours(12, 0, 0, 0) // Set to noon yesterday to ensure it's in the past
+    // Create a cache file fetched more than a day ago. The daily cache
+    // expires 24 hours after it was fetched.
+    const yesterday = new Date(Date.now() - 25 * 60 * 60 * 1000)
 
     const cacheContents = {
       lastFetched: yesterday.toISOString(),
